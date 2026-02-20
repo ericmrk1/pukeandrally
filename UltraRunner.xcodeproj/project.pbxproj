@@ -1,0 +1,290 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		9FBCB89EB151433C88306DCF /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0A5B24C70943F7BD972FA8; };
+		D78B2D33ABB545F49A5A76CB /* GameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91A428B4557841BB941235B3; };
+		7ED1404CC027430487639A30 /* GameConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A1976CD1BF4360B77D4BF8; };
+		DBCEF2BD904149BE8EB924E1 /* Player.swift in Sources */ = {isa = PBXBuildFile; fileRef = E560A74D021D4CFE845ED7D0; };
+		29BAFB0DE85149289A4E5A66 /* HUDNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC5E2BF2AD54138946774E9; };
+		C6DC3C22DD194259BDA216EB /* TerrainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BEDD38641C64744B8F94A36; };
+		90896401ADBA4CB5BEF498AC /* GameScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F810EBA9B354402B5BE667A; };
+		21D86B2DD821483E9163B2B0 /* MainMenuScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6303C2EED5EA4304ABFD6830; };
+		2EDBE459D529475F87B4B983 /* LevelSelectScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA8083C9EB348E887CE71D0; };
+		B2F5B679954346B7B16F29B5 /* GameOverScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B84E1D685B8453490FB402C; };
+		CCCC9C1E3E494D93BB65384A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7D8A199A4C954AB191CFA9F9; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		BA0A5B24C70943F7BD972FA8 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDelegate.swift"; sourceTree = "<group>"; };
+		91A428B4557841BB941235B3 /* GameViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GameViewController.swift"; sourceTree = "<group>"; };
+		D1A1976CD1BF4360B77D4BF8 /* Game/GameConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GameConfig.swift"; sourceTree = "<group>"; };
+		E560A74D021D4CFE845ED7D0 /* Game/Player.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Player.swift"; sourceTree = "<group>"; };
+		FEC5E2BF2AD54138946774E9 /* Game/HUDNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HUDNode.swift"; sourceTree = "<group>"; };
+		9BEDD38641C64744B8F94A36 /* Game/TerrainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerrainManager.swift"; sourceTree = "<group>"; };
+		4F810EBA9B354402B5BE667A /* Scenes/GameScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GameScene.swift"; sourceTree = "<group>"; };
+		6303C2EED5EA4304ABFD6830 /* Scenes/MainMenuScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MainMenuScene.swift"; sourceTree = "<group>"; };
+		8BA8083C9EB348E887CE71D0 /* Scenes/LevelSelectScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LevelSelectScene.swift"; sourceTree = "<group>"; };
+		5B84E1D685B8453490FB402C /* Scenes/GameOverScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GameOverScene.swift"; sourceTree = "<group>"; };
+		C6AB8B045059415CA2331F08 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		7D8A199A4C954AB191CFA9F9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		71A82EE626F84EA18A44D2A7 /* UltraRunner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = UltraRunner.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		7C918815798A462EBA52F168 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		261A93C0A587420E968579AF /* Game */ = {
+			isa = PBXGroup;
+			children = (
+				D1A1976CD1BF4360B77D4BF8 /* GameConfig.swift */,
+				E560A74D021D4CFE845ED7D0 /* Player.swift */,
+				FEC5E2BF2AD54138946774E9 /* HUDNode.swift */,
+				9BEDD38641C64744B8F94A36 /* TerrainManager.swift */,
+			);
+			name = Game;
+			sourceTree = "<group>";
+		};
+		4AB285BF7C684B7D9E31A0FF /* Scenes */ = {
+			isa = PBXGroup;
+			children = (
+				4F810EBA9B354402B5BE667A /* GameScene.swift */,
+				6303C2EED5EA4304ABFD6830 /* MainMenuScene.swift */,
+				8BA8083C9EB348E887CE71D0 /* LevelSelectScene.swift */,
+				5B84E1D685B8453490FB402C /* GameOverScene.swift */,
+			);
+			name = Scenes;
+			sourceTree = "<group>";
+		};
+		7D5FC6439F8B449CB6F4990B /* UltraRunner */ = {
+			isa = PBXGroup;
+			children = (
+				BA0A5B24C70943F7BD972FA8 /* AppDelegate.swift */,
+				91A428B4557841BB941235B3 /* GameViewController.swift */,
+				261A93C0A587420E968579AF /* Game */,
+				4AB285BF7C684B7D9E31A0FF /* Scenes */,
+				7D8A199A4C954AB191CFA9F9 /* Assets.xcassets */,
+				C6AB8B045059415CA2331F08 /* Info.plist */,
+			);
+			path = UltraRunner;
+			sourceTree = "<group>";
+		};
+		049DFDE8295D41A391C3E5FC /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				71A82EE626F84EA18A44D2A7 /* UltraRunner.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		4C9482D1CFE64522BBBD6F2B = {
+			isa = PBXGroup;
+			children = (
+				7D5FC6439F8B449CB6F4990B /* UltraRunner */,
+				049DFDE8295D41A391C3E5FC /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		FAB73D7051324D6EB6EDC3C9 /* UltraRunner */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EA57C02197274F88A825568A;
+			buildPhases = (
+				9037AF7454564922A309A91C /* Sources */,
+				7C918815798A462EBA52F168 /* Frameworks */,
+				05367B9A0B924949AB8E8055 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = UltraRunner;
+			productName = UltraRunner;
+			productReference = 71A82EE626F84EA18A44D2A7;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		8913C4D5748D47DBBE618F24 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1500;
+			};
+			buildConfigurationList = B13AD66FE36F4C9AB5BDFDDD;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 4C9482D1CFE64522BBBD6F2B;
+			productRefGroup = 049DFDE8295D41A391C3E5FC;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				FAB73D7051324D6EB6EDC3C9 /* UltraRunner */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		05367B9A0B924949AB8E8055 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CCCC9C1E3E494D93BB65384A /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		9037AF7454564922A309A91C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9FBCB89EB151433C88306DCF /* AppDelegate.swift in Sources */,
+				D78B2D33ABB545F49A5A76CB /* GameViewController.swift in Sources */,
+				7ED1404CC027430487639A30 /* GameConfig.swift in Sources */,
+				DBCEF2BD904149BE8EB924E1 /* Player.swift in Sources */,
+				29BAFB0DE85149289A4E5A66 /* HUDNode.swift in Sources */,
+				C6DC3C22DD194259BDA216EB /* TerrainManager.swift in Sources */,
+				90896401ADBA4CB5BEF498AC /* GameScene.swift in Sources */,
+				21D86B2DD821483E9163B2B0 /* MainMenuScene.swift in Sources */,
+				2EDBE459D529475F87B4B983 /* LevelSelectScene.swift in Sources */,
+				B2F5B679954346B7B16F29B5 /* GameOverScene.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		8861A8B9A1C04FFC8B086AFD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				BUILD_LIBRARY_FOR_DISTRIBUTION = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		12791CA4E6C549A0955080BA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		418CAB740EC048C0A9BCD848 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = UltraRunner/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LE_SWIFT_VERSION = 5.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.ultrarunner.game";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		82E307D5BC984572BBB36D4E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = UltraRunner/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LE_SWIFT_VERSION = 5.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.ultrarunner.game";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		B13AD66FE36F4C9AB5BDFDDD /* Build configuration list for PBXProject "UltraRunner" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8861A8B9A1C04FFC8B086AFD /* Debug */,
+				12791CA4E6C549A0955080BA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EA57C02197274F88A825568A /* Build configuration list for PBXNativeTarget "UltraRunner" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				418CAB740EC048C0A9BCD848 /* Debug */,
+				82E307D5BC984572BBB36D4E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+	};
+	rootObject = 8913C4D5748D47DBBE618F24 /* Project object */;
+}
