@@ -197,7 +197,7 @@ class MainMenuScene: SKScene {
             ("⚡ Energy bar — depletes when running", 0),
             ("🚶 When empty — you walk to recover", 12),
             ("💧⚡🐻 Collect items to restore energy", 0),
-            ("🏕 Reach all Aid Stations to finish!", 12),
+            ("🏁 Reach the full distance before time runs out!", 12),
             ("🚻 Bathroom — lose time, gain energy", 0),
             ("🗑 Trash can — barf, lose time, gain energy", 0),
             ("⭐ Points: speed + collectibles + aid stations", 0),

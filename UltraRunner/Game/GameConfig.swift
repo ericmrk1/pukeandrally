@@ -13,6 +13,8 @@ struct LevelConfig {
     let particleColor: UIColor
     let aidStations: Int
     let distanceKm: Int
+    /// Time limit in minutes; player must reach full distance before this. Generous so run/hike/walk mix can finish.
+    let timeLimitMinutes: Double
     /// Scale for gap between obstacles; > 1 = fewer obstacles (easier). 1.0 = normal.
     let obstacleGapScale: CGFloat
     let bgElements: [BgElementType]
@@ -54,6 +56,7 @@ let ALL_LEVELS: [LevelConfig] = [
         obstacleTypes: [.rock,.boulder,.log,.mudPuddle,.waterCross],
         particleColor: UIColor.white,
         aidStations: 5, distanceKm: 160,
+        timeLimitMinutes: 5,
         obstacleGapScale: 1.0,
         bgElements: [.mountain,.tree],
         ambientDesc: "🏔 Thin air, rocky trails, alpine meadows"
@@ -67,6 +70,7 @@ let ALL_LEVELS: [LevelConfig] = [
         obstacleTypes: [.cactus,.sandDune,.rock,.boulder],
         particleColor: UIColor(red:1,green:0.9,blue:0.6,alpha:0.5),
         aidStations: 5, distanceKm: 217,
+        timeLimitMinutes: 5,
         obstacleGapScale: 1.0,
         bgElements: [.cactus,.sand],
         ambientDesc: "🌵 Scorching heat, sand dunes, mirages"
@@ -80,6 +84,7 @@ let ALL_LEVELS: [LevelConfig] = [
         obstacleTypes: [.building,.barrel,.mudPuddle],
         particleColor: UIColor.yellow,
         aidStations: 4, distanceKm: 80,
+        timeLimitMinutes: 4,
         obstacleGapScale: 1.5,
         bgElements: [.building],
         ambientDesc: "🏙 Concrete jungle, traffic, city noise"
@@ -93,6 +98,7 @@ let ALL_LEVELS: [LevelConfig] = [
         obstacleTypes: [.crater,.boulder,.rock],
         particleColor: UIColor(red:1,green:0.5,blue:0.3,alpha:0.6),
         aidStations: 4, distanceKm: 42,
+        timeLimitMinutes: 3,
         obstacleGapScale: 2.0,
         bgElements: [.crater],
         ambientDesc: "🔴 Low gravity, craters, alien terrain"
@@ -106,6 +112,7 @@ let ALL_LEVELS: [LevelConfig] = [
         obstacleTypes: [.vine,.tree,.mudPuddle,.waterCross],
         particleColor: UIColor(red:0.3,green:1,blue:0.3,alpha:0.4),
         aidStations: 4, distanceKm: 50,
+        timeLimitMinutes: 3,
         obstacleGapScale: 2.0,
         bgElements: [.tree,.swamp],
         ambientDesc: "🌿 Dense canopy, humidity, exotic wildlife"
@@ -119,6 +126,7 @@ let ALL_LEVELS: [LevelConfig] = [
         obstacleTypes: [.mudPuddle,.log,.waterCross,.vine],
         particleColor: UIColor(red:0.5,green:0.8,blue:0.2,alpha:0.5),
         aidStations: 4, distanceKm: 100,
+        timeLimitMinutes: 4,
         obstacleGapScale: 1.0,
         bgElements: [.swamp,.tree],
         ambientDesc: "🐊 Murky waters, Spanish moss, alligators"
@@ -132,6 +140,7 @@ let ALL_LEVELS: [LevelConfig] = [
         obstacleTypes: [.log,.root,.rock,.mudPuddle,.waterCross],
         particleColor: UIColor(red:0.7,green:0.5,blue:0.3,alpha:0.4),
         aidStations: 5, distanceKm: 80,
+        timeLimitMinutes: 4,
         obstacleGapScale: 1.5,
         bgElements: [.redwood,.tree],
         ambientDesc: "🌲 Ancient giants, fern carpet, filtered light"
@@ -145,6 +154,7 @@ let ALL_LEVELS: [LevelConfig] = [
         obstacleTypes: [.rock,.boulder,.sandDune,.waterCross],
         particleColor: UIColor(red:0.9,green:0.6,blue:0.3,alpha:0.5),
         aidStations: 5, distanceKm: 40,
+        timeLimitMinutes: 3,
         obstacleGapScale: 2.0,
         bgElements: [.canyon],
         ambientDesc: "🏜 Dramatic drops, switchbacks, ancient rock"
@@ -187,6 +197,8 @@ struct GameConstants {
     static let energyFromMedkit: CGFloat = 40
     static let energyFromBathroom: CGFloat = 35
     static let energyFromTrash: CGFloat = 28
+    static let energyFromPee: CGFloat = 15
+    static let energyFromCostumeChange: CGFloat = 10
     static let bathroomTimePenalty: Double = 8.0
     static let trashTimePenalty: Double = 5.0
     static let pointsPerAidStation: Int = 500

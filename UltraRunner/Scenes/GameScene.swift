@@ -43,7 +43,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     /// Porta potty: tap stops gameplay and shows bathroom/vomit screen until "Exit potty"
     private var pottyOverlay: SKNode?
     private var pendingPortaPottyNode: SKNode?
-    private var pottyChoice: String? = nil  // "poop" or "puke" when selected
+    private var pottyChoice: String? = nil  // "poop", "puke", "pee", or "costume" when selected
 
     /// Runners we've already shown "On your left" for (so we don't repeat)
     private var passedRunnerIDs: Set<ObjectIdentifier> = []
@@ -300,6 +300,19 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                         playFeelBetterSound()
                         showPottyEmojiFeedback(emoji: "🤮", text: "Feeling lighter!")
                         leavePortaPotty()
+                    } else if name == "potty_pee" {
+                        pottyChoice = "pee"
+                        playSound("water")
+                        showPottyEmojiFeedback(emoji: "💧", text: "Quick stop!")
+                        leavePortaPotty()
+                    } else if name == "potty_costume" {
+                        pottyChoice = "costume"
+                        playSound("pickup")
+                        showPottyEmojiFeedback(emoji: "👕", text: "Fresh threads!")
+                        leavePortaPotty()
+                    } else if name == "potty_leave" {
+                        pottyChoice = "leave"
+                        leavePortaPotty()
                     }
                     return
                 }
@@ -383,6 +396,22 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         updateSpeed(dt: dt)
         terrainManager.update(scrollSpeed: currentSpeed, dt: dt)
         updateHUD()
+        // Time's up before reaching full distance = DNF (finish only counts when you reach the distance)
+        let timeLimitSeconds = levelConfig.timeLimitMinutes * 60
+        if isAlive, !isCelebrating, elapsedTime >= timeLimitSeconds {
+            let kmTraveled = terrainManager.totalDistance / GameConstants.distanceUnitsPerKm
+            if kmTraveled < CGFloat(levelConfig.distanceKm) {
+                currentSpeed = 0
+                targetSpeed = 0
+                isAlive = false
+                player.state = .dead
+                hud.showMessage("Time's up! — Did Not Finish", color: UIColor(red: 0.95, green: 0.2, blue: 0.2, alpha: 1))
+                run(SKAction.sequence([
+                    SKAction.wait(forDuration: 2.0),
+                    SKAction.run { [weak self] in self?.goToMenu() }
+                ]))
+            }
+        }
         updateHitCooldown(dt: dt)
         checkAidStationProgress()
         spawnParticleTrail(dt: dt)
@@ -732,8 +761,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         dim.position = CGPoint(x: size.width/2, y: size.height/2)
         overlay.addChild(dim)
 
-        let panelW: CGFloat = min(size.width - 40, 340)
-        let panelH: CGFloat = 380
+        let panelW: CGFloat = min(size.width - 40, 400)
+        let panelH: CGFloat = 420
         let panel = SKShapeNode(rectOf: CGSize(width: panelW, height: panelH), cornerRadius: 16)
         panel.fillColor = UIColor(red:0.25,green:0.15,blue:0.08,alpha:0.98)
         panel.strokeColor = UIColor(red:0.9,green:0.4,blue:0.2,alpha:1)
@@ -766,15 +795,16 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             ("tent_pretzel", "🥨", "Pretzels"),
         ]
         let cols = 4
-        let btnSize: CGFloat = 68
-        let spacing: CGFloat = 76
-        let startX = size.width/2 - (CGFloat(cols - 1) * spacing / 2)
-        let row1Y = size.height/2 + 20
-        let row2Y = size.height/2 - 55
+        let btnSize: CGFloat = 80
+        let spacingX: CGFloat = 98
+        let spacingY: CGFloat = 98
+        let startX = size.width/2 - (CGFloat(cols - 1) * spacingX / 2)
+        let row1Y = size.height/2 + 28
+        let row2Y = size.height/2 - (spacingY - 28)
         for (i, opt) in options.enumerated() {
             let col = i % cols
             let row = i / cols
-            let x = startX + CGFloat(col) * spacing
+            let x = startX + CGFloat(col) * spacingX
             let y = row == 0 ? row1Y : row2Y
             let btn = makeTentOptionButton(name: opt.name, emoji: opt.emoji, label: opt.label, size: btnSize)
             btn.position = CGPoint(x: x, y: y)
@@ -794,16 +824,16 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         bg.lineWidth = 1.5
         btn.addChild(bg)
         let em = SKLabelNode(text: emoji)
-        em.fontSize = 28
+        em.fontSize = 38
         em.verticalAlignmentMode = .center
-        em.position = CGPoint(x: 0, y: 8)
+        em.position = CGPoint(x: 0, y: 10)
         btn.addChild(em)
         let lbl = SKLabelNode(fontNamed: "AvenirNext-Medium")
         lbl.text = label
-        lbl.fontSize = 9
+        lbl.fontSize = 11
         lbl.fontColor = UIColor.white.withAlphaComponent(0.9)
         lbl.verticalAlignmentMode = .center
-        lbl.position = CGPoint(x: 0, y: -18)
+        lbl.position = CGPoint(x: 0, y: -24)
         lbl.horizontalAlignmentMode = .center
         btn.addChild(lbl)
         return btn
@@ -850,9 +880,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             SKAction.wait(forDuration: 2.5),
             SKAction.run { [weak self] in
                 self?.isCelebrating = false
-                if let total = self?.levelConfig.aidStations, self?.aidStationsReached == total {
-                    self?.finishRace()
-                }
+                // Finish only when full distance is reached (in updateHUD), not for hitting all aid stations
             }
         ]))
     }
@@ -879,8 +907,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         dim.position = CGPoint(x: size.width/2, y: size.height/2)
         overlay.addChild(dim)
 
-        let panelW: CGFloat = min(size.width - 40, 320)
-        let panelH: CGFloat = 340
+        let btnSize: CGFloat = 56
+        let spacingX: CGFloat = 68
+        let centerX = size.width/2
+        let rowY = size.height/2
+        // 5 buttons in one row: 4*spacing + btnSize = 4*68+56 = 328
+        let panelW: CGFloat = min(size.width - 32, 360)
+        let panelH: CGFloat = 200
         let panel = SKShapeNode(rectOf: CGSize(width: panelW, height: panelH), cornerRadius: 16)
         panel.fillColor = UIColor(red: 0.12, green: 0.2, blue: 0.45, alpha: 0.98)
         panel.strokeColor = UIColor(red: 0.3, green: 0.6, blue: 1, alpha: 0.9)
@@ -890,27 +923,32 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
         let title = SKLabelNode(fontNamed: "AvenirNext-Heavy")
         title.text = "🚻 Porta Potty"
-        title.fontSize = 24
+        title.fontSize = 20
         title.fontColor = UIColor(red: 1, green: 0.95, blue: 0.7, alpha: 1)
-        title.position = CGPoint(x: size.width/2, y: size.height/2 + panelH/2 - 40)
+        title.position = CGPoint(x: size.width/2, y: size.height/2 + panelH/2 - 28)
         overlay.addChild(title)
 
         let sub = SKLabelNode(fontNamed: "AvenirNext-Medium")
         sub.text = "Pick one — then you're out!"
-        sub.fontSize = 14
+        sub.fontSize = 12
         sub.fontColor = UIColor.white.withAlphaComponent(0.9)
-        sub.position = CGPoint(x: size.width/2, y: size.height/2 + panelH/2 - 68)
+        sub.position = CGPoint(x: size.width/2, y: size.height/2 + panelH/2 - 50)
         overlay.addChild(sub)
 
-        // 💩 Go to bathroom
-        let poopBtn = makePottyButton(name: "potty_poop", emoji: "💩", label: "Go to bathroom", size: 100)
-        poopBtn.position = CGPoint(x: size.width/2 - 75, y: size.height/2 + 15)
-        overlay.addChild(poopBtn)
-
-        // 🤮 Throw up
-        let pukeBtn = makePottyButton(name: "potty_puke", emoji: "🤮", label: "Throw up", size: 100)
-        pukeBtn.position = CGPoint(x: size.width/2 + 75, y: size.height/2 + 15)
-        overlay.addChild(pukeBtn)
+        // All 5 options in one horizontal row (smaller labels so they fit)
+        let options: [(name: String, emoji: String, label: String)] = [
+            ("potty_poop", "💩", "Bathroom"),
+            ("potty_puke", "🤮", "Puke"),
+            ("potty_pee", "💧", "Pee"),
+            ("potty_costume", "👕", "Costume"),
+            ("potty_leave", "🚪", "Leave"),
+        ]
+        for (i, opt) in options.enumerated() {
+            let x = centerX + CGFloat(i - 2) * spacingX  // indices 0,1,2,3,4 -> -2,-1,0,1,2
+            let btn = makePottyButton(name: opt.name, emoji: opt.emoji, label: opt.label, size: btnSize)
+            btn.position = CGPoint(x: x, y: rowY - 10)
+            overlay.addChild(btn)
+        }
 
         addChild(overlay)
         pottyOverlay = overlay
@@ -925,16 +963,16 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         bg.lineWidth = 2
         btn.addChild(bg)
         let em = SKLabelNode(text: emoji)
-        em.fontSize = 48
+        em.fontSize = min(58, size * 0.66)
         em.verticalAlignmentMode = .center
-        em.position = CGPoint(x: 0, y: 12)
+        em.position = CGPoint(x: 0, y: size * 0.28)
         btn.addChild(em)
         let lbl = SKLabelNode(fontNamed: "AvenirNext-Medium")
         lbl.text = label
-        lbl.fontSize = 12
+        lbl.fontSize = max(10, min(13, size * 0.2))
         lbl.fontColor = UIColor.white.withAlphaComponent(0.95)
         lbl.verticalAlignmentMode = .center
-        lbl.position = CGPoint(x: 0, y: -32)
+        lbl.position = CGPoint(x: 0, y: -size/2 + 14)
         lbl.horizontalAlignmentMode = .center
         btn.addChild(lbl)
         return btn
@@ -958,13 +996,20 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             energy = min(GameConstants.energyMax, energy + GameConstants.energyFromBathroom)
             score = max(0, score - 200)
             hud.showMessage("💩 Bathroom break! -200 pts, +\(Int(GameConstants.energyFromBathroom)) energy", color: UIColor(red: 0.4, green: 0.6, blue: 1, alpha: 1))
-            // Fart already played when they tapped 💩
-        } else {
+        } else if choice == "puke" {
             energy = min(GameConstants.energyMax, energy + GameConstants.energyFromTrash)
             score = max(0, score - 150)
             hud.showMessage("🤮 Threw up! -150 pts, +\(Int(GameConstants.energyFromTrash)) energy", color: UIColor(red: 0.5, green: 0.8, blue: 0.4, alpha: 1))
-            // Voice already played when they tapped 🤮
+        } else if choice == "pee" {
+            energy = min(GameConstants.energyMax, energy + GameConstants.energyFromPee)
+            score = max(0, score - 100)
+            hud.showMessage("💧 Quick pee! -100 pts, +\(Int(GameConstants.energyFromPee)) energy", color: UIColor(red: 0.4, green: 0.7, blue: 1, alpha: 1))
+        } else if choice == "costume" {
+            energy = min(GameConstants.energyMax, energy + GameConstants.energyFromCostumeChange)
+            score = max(0, score - 50)
+            hud.showMessage("👕 Costume change! -50 pts, +\(Int(GameConstants.energyFromCostumeChange)) energy", color: UIColor(red: 0.6, green: 0.5, blue: 0.9, alpha: 1))
         }
+        // "leave" = no energy or score change
 
         terrainManager.portaPottyNodes.removeAll { $0 == node }
         node.removeFromParent()

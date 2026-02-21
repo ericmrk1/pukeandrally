@@ -35,8 +35,8 @@ class TerrainManager {
         self.screenH = scene.size.height
         self.screenW = scene.size.width
         self.groundY = GameConstants.groundHeight
-        // Pre-compute aid station pixel positions
-        let totalPx: CGFloat = 12000
+        // Pre-compute aid station pixel positions across the full level distance
+        let totalPx = CGFloat(config.distanceKm) * GameConstants.distanceUnitsPerKm
         let interval = totalPx / CGFloat(config.aidStations + 1)
         for i in 1...config.aidStations {
             aidStationPositions.append(interval * CGFloat(i))
@@ -409,14 +409,14 @@ class TerrainManager {
         default: pickupType = .trashCan; emoji = "🗑"
         }
 
-        let bg = SKShapeNode(circleOfRadius: 18)
+        let bg = SKShapeNode(circleOfRadius: 28)
         bg.fillColor = pickupType == .bathroom ? UIColor(red:0.1,green:0.3,blue:0.8,alpha:0.85) :
                        pickupType == .trashCan ? UIColor(red:0.2,green:0.2,blue:0.2,alpha:0.85) :
                        UIColor(red:0.15,green:0.6,blue:0.3,alpha:0.85)
         bg.strokeColor = UIColor.white.withAlphaComponent(0.6)
         bg.lineWidth = 2
         // Friendly "tap to collect" glow so goodies are clearly helpful
-        let helpRing = SKShapeNode(circleOfRadius: 26)
+        let helpRing = SKShapeNode(circleOfRadius: 36)
         helpRing.fillColor = UIColor(red: 0.2, green: 1, blue: 0.4, alpha: 0.15)
         helpRing.strokeColor = UIColor(red: 0.2, green: 0.9, blue: 0.4, alpha: 0.7)
         helpRing.lineWidth = 2
@@ -429,7 +429,7 @@ class TerrainManager {
         ])))
 
         let label = SKLabelNode(text: emoji)
-        label.fontSize = 22
+        label.fontSize = 34
         label.verticalAlignmentMode = .center
         label.horizontalAlignmentMode = .center
         bg.addChild(label)
@@ -438,7 +438,7 @@ class TerrainManager {
         bg.zPosition = 12
         bg.name = "pickup_\(pickupType)"
 
-        let pb = SKPhysicsBody(circleOfRadius: 16)
+        let pb = SKPhysicsBody(circleOfRadius: 26)
         pb.isDynamic = false
         pb.categoryBitMask = PhysicsCategory.pickup
         pb.contactTestBitMask = PhysicsCategory.player
