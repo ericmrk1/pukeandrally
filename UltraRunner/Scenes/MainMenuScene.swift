@@ -138,7 +138,7 @@ class MainMenuScene: SKScene {
                 showHelp()
                 node.run(SKAction.scale(to: 0.9, duration: 0.1))
             case "close_overlay":
-                removeChildren(in: nodes(at: CGPoint(x: size.width/2, y: size.height/2)).filter { $0.name == "overlay" })
+                removeChildren(in: self.nodes(at: CGPoint(x: size.width/2, y: size.height/2)).filter { $0.name == "overlay" })
                 childNode(withName: "overlay")?.removeFromParent()
             default: break
             }

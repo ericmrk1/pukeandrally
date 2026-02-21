@@ -13,13 +13,15 @@ struct LevelConfig {
     let particleColor: UIColor
     let aidStations: Int
     let distanceKm: Int
+    /// Scale for gap between obstacles; > 1 = fewer obstacles (easier). 1.0 = normal.
+    let obstacleGapScale: CGFloat
     let bgElements: [BgElementType]
     let ambientDesc: String
 }
 
 enum ObstacleType: String, CaseIterable {
     case rock, log, mudPuddle, cactus, boulder, crater, tree,
-         vine, waterCross, fog, sandDune, building, barrel
+         vine, waterCross, fog, sandDune, building, barrel, root
 }
 
 enum BgElementType {
@@ -52,6 +54,7 @@ let ALL_LEVELS: [LevelConfig] = [
         obstacleTypes: [.rock,.boulder,.log,.mudPuddle],
         particleColor: UIColor.white,
         aidStations: 5, distanceKm: 160,
+        obstacleGapScale: 1.0,
         bgElements: [.mountain,.tree],
         ambientDesc: "🏔 Thin air, rocky trails, alpine meadows"
     ),
@@ -64,6 +67,7 @@ let ALL_LEVELS: [LevelConfig] = [
         obstacleTypes: [.cactus,.sandDune,.rock,.boulder],
         particleColor: UIColor(red:1,green:0.9,blue:0.6,alpha:0.5),
         aidStations: 5, distanceKm: 217,
+        obstacleGapScale: 1.0,
         bgElements: [.cactus,.sand],
         ambientDesc: "🌵 Scorching heat, sand dunes, mirages"
     ),
@@ -76,6 +80,7 @@ let ALL_LEVELS: [LevelConfig] = [
         obstacleTypes: [.building,.barrel,.mudPuddle],
         particleColor: UIColor.yellow,
         aidStations: 4, distanceKm: 80,
+        obstacleGapScale: 1.5,
         bgElements: [.building],
         ambientDesc: "🏙 Concrete jungle, traffic, city noise"
     ),
@@ -88,6 +93,7 @@ let ALL_LEVELS: [LevelConfig] = [
         obstacleTypes: [.crater,.boulder,.rock],
         particleColor: UIColor(red:1,green:0.5,blue:0.3,alpha:0.6),
         aidStations: 4, distanceKm: 42,
+        obstacleGapScale: 2.0,
         bgElements: [.crater],
         ambientDesc: "🔴 Low gravity, craters, alien terrain"
     ),
@@ -100,6 +106,7 @@ let ALL_LEVELS: [LevelConfig] = [
         obstacleTypes: [.vine,.tree,.mudPuddle,.waterCross],
         particleColor: UIColor(red:0.3,green:1,blue:0.3,alpha:0.4),
         aidStations: 4, distanceKm: 50,
+        obstacleGapScale: 2.0,
         bgElements: [.tree,.swamp],
         ambientDesc: "🌿 Dense canopy, humidity, exotic wildlife"
     ),
@@ -112,6 +119,7 @@ let ALL_LEVELS: [LevelConfig] = [
         obstacleTypes: [.mudPuddle,.log,.waterCross,.vine],
         particleColor: UIColor(red:0.5,green:0.8,blue:0.2,alpha:0.5),
         aidStations: 4, distanceKm: 100,
+        obstacleGapScale: 1.0,
         bgElements: [.swamp,.tree],
         ambientDesc: "🐊 Murky waters, Spanish moss, alligators"
     ),
@@ -124,6 +132,7 @@ let ALL_LEVELS: [LevelConfig] = [
         obstacleTypes: [.log,.root,.rock,.mudPuddle],
         particleColor: UIColor(red:0.7,green:0.5,blue:0.3,alpha:0.4),
         aidStations: 5, distanceKm: 80,
+        obstacleGapScale: 1.5,
         bgElements: [.redwood,.tree],
         ambientDesc: "🌲 Ancient giants, fern carpet, filtered light"
     ),
@@ -136,6 +145,7 @@ let ALL_LEVELS: [LevelConfig] = [
         obstacleTypes: [.rock,.boulder,.sandDune],
         particleColor: UIColor(red:0.9,green:0.6,blue:0.3,alpha:0.5),
         aidStations: 5, distanceKm: 40,
+        obstacleGapScale: 2.0,
         bgElements: [.canyon],
         ambientDesc: "🏜 Dramatic drops, switchbacks, ancient rock"
     ),
@@ -151,10 +161,18 @@ struct PhysicsCategory {
 }
 
 struct GameConstants {
+    /// Scrolling this many distance units = 1 km displayed. Larger value = slower distance tick (e.g. 600 → ~5 min for 50 km at typical speed).
+    static let distanceUnitsPerKm: CGFloat = 600
     static let playerRunSpeed: CGFloat = 280
+    static let playerHikeSpeed: CGFloat = 180
     static let playerSprintSpeed: CGFloat = 460
     static let playerWalkSpeed: CGFloat = 110
-    static let jumpImpulse: CGFloat = 520
+    /// Normal gravity when on ground. Restored on landing.
+    static let gravityNormal: CGFloat = -22
+    /// Lower gravity during jump for a floaty "moon jump" (slow up, slow down).
+    static let gravityJump: CGFloat = -8
+    static let jumpImpulse: CGFloat = 220
+    static let jumpImpulseForward: CGFloat = 95
     static let energyMax: CGFloat = 100
     static let energyDrainRun: CGFloat = 3.5      // per second
     static let energyDrainSprint: CGFloat = 9.0

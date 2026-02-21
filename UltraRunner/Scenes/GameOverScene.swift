@@ -60,8 +60,11 @@ class GameOverScene: SKScene {
 
         let mins = Int(elapsedTime)/60
         let secs = Int(elapsedTime)%60
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        let scoreString = formatter.string(from: NSNumber(value: finalScore)) ?? "\(finalScore)"
         let rows: [(String, String)] = [
-            ("⭐ FINAL SCORE", String(format: "%,d", finalScore).replacingOccurrences(of: ",", with: ",")),
+            ("⭐ FINAL SCORE", scoreString),
             ("⏱ FINISH TIME", String(format: "%d:%02d", mins, secs)),
             ("🏅 GRADE", grade(for: finalScore))
         ]
@@ -78,7 +81,12 @@ class GameOverScene: SKScene {
 
             let vLbl = SKLabelNode(fontNamed: "AvenirNext-Heavy")
             vLbl.text = val
-            vLbl.fontSize = i == 0 ? 28 : 20
+            // Use smaller font for score so large numbers fit in the card
+            if i == 0 {
+                vLbl.fontSize = val.count > 10 ? 16 : (val.count > 8 ? 18 : 24)
+            } else {
+                vLbl.fontSize = 20
+            }
             vLbl.fontColor = i == 0 ? UIColor(red:1,green:0.85,blue:0.2,alpha:1) : .white
             vLbl.horizontalAlignmentMode = .right
             vLbl.position = CGPoint(x: 110, y: y - 8)

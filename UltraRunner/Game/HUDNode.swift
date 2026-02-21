@@ -186,6 +186,7 @@ class HUDNode: SKNode {
         case .running:   stateLabel.text = "🏃 RUNNING";  stateLabel.fontColor = UIColor(red:0.3,green:1,blue:0.5,alpha:1)
         case .sprinting: stateLabel.text = "⚡ SPRINT!";  stateLabel.fontColor = UIColor(red:1,green:0.9,blue:0.1,alpha:1)
         case .walking:   stateLabel.text = "🚶 WALKING";  stateLabel.fontColor = UIColor(red:0.8,green:0.5,blue:0.3,alpha:1)
+        case .hiking:    stateLabel.text = "🥾 HIKING";   stateLabel.fontColor = UIColor(red:0.4,green:0.8,blue:0.4,alpha:1)
         case .jumping:   stateLabel.text = "🦘 JUMP!";    stateLabel.fontColor = .white
         case .celebration: stateLabel.text = "🎉 AID STATION!"; stateLabel.fontColor = UIColor(red:1,green:0.8,blue:0.2,alpha:1)
         }

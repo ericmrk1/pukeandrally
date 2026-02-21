@@ -13,6 +13,7 @@
 		DBCEF2BD904149BE8EB924E1 /* Player.swift in Sources */ = {isa = PBXBuildFile; fileRef = E560A74D021D4CFE845ED7D0; };
 		29BAFB0DE85149289A4E5A66 /* HUDNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC5E2BF2AD54138946774E9; };
 		C6DC3C22DD194259BDA216EB /* TerrainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BEDD38641C64744B8F94A36; };
+		A7F2E1C83D4B4E59A8B6C5D4 /* OtherRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8E9D0A12C3F4D67E1B5A9C8; };
 		90896401ADBA4CB5BEF498AC /* GameScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F810EBA9B354402B5BE667A; };
 		21D86B2DD821483E9163B2B0 /* MainMenuScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6303C2EED5EA4304ABFD6830; };
 		2EDBE459D529475F87B4B983 /* LevelSelectScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA8083C9EB348E887CE71D0; };
@@ -27,6 +28,7 @@
 		E560A74D021D4CFE845ED7D0 /* Game/Player.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Player.swift"; sourceTree = "<group>"; };
 		FEC5E2BF2AD54138946774E9 /* Game/HUDNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HUDNode.swift"; sourceTree = "<group>"; };
 		9BEDD38641C64744B8F94A36 /* Game/TerrainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerrainManager.swift"; sourceTree = "<group>"; };
+		B8E9D0A12C3F4D67E1B5A9C8 /* Game/OtherRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OtherRunner.swift"; sourceTree = "<group>"; };
 		4F810EBA9B354402B5BE667A /* Scenes/GameScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GameScene.swift"; sourceTree = "<group>"; };
 		6303C2EED5EA4304ABFD6830 /* Scenes/MainMenuScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MainMenuScene.swift"; sourceTree = "<group>"; };
 		8BA8083C9EB348E887CE71D0 /* Scenes/LevelSelectScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LevelSelectScene.swift"; sourceTree = "<group>"; };
@@ -53,9 +55,11 @@
 				D1A1976CD1BF4360B77D4BF8 /* GameConfig.swift */,
 				E560A74D021D4CFE845ED7D0 /* Player.swift */,
 				FEC5E2BF2AD54138946774E9 /* HUDNode.swift */,
+				B8E9D0A12C3F4D67E1B5A9C8 /* OtherRunner.swift */,
 				9BEDD38641C64744B8F94A36 /* TerrainManager.swift */,
 			);
 			name = Game;
+			path = Game;
 			sourceTree = "<group>";
 		};
 		4AB285BF7C684B7D9E31A0FF /* Scenes */ = {
@@ -67,6 +71,7 @@
 				5B84E1D685B8453490FB402C /* GameOverScene.swift */,
 			);
 			name = Scenes;
+			path = Scenes;
 			sourceTree = "<group>";
 		};
 		7D5FC6439F8B449CB6F4990B /* UltraRunner */ = {
@@ -167,6 +172,7 @@
 				DBCEF2BD904149BE8EB924E1 /* Player.swift in Sources */,
 				29BAFB0DE85149289A4E5A66 /* HUDNode.swift in Sources */,
 				C6DC3C22DD194259BDA216EB /* TerrainManager.swift in Sources */,
+				A7F2E1C83D4B4E59A8B6C5D4 /* OtherRunner.swift in Sources */,
 				90896401ADBA4CB5BEF498AC /* GameScene.swift in Sources */,
 				21D86B2DD821483E9163B2B0 /* MainMenuScene.swift in Sources */,
 				2EDBE459D529475F87B4B983 /* LevelSelectScene.swift in Sources */,

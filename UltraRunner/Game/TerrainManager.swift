@@ -6,16 +6,20 @@ class TerrainManager {
     var groundNodes: [SKNode] = []
     var obstacleNodes: [SKNode] = []
     var pickupNodes: [SKNode] = []
+    var portaPottyNodes: [SKNode] = []
     var bgNodes: [SKNode] = []
     var decorNodes: [SKNode] = []
+    var otherRunnerNodes: [SKNode] = []
     private var lastGroundX: CGFloat = 0
     private var spawnTimer: CGFloat = 0
     private var bgSpawnTimer: CGFloat = 0
     private var obstacleInterval: CGFloat = 3.5
     private var pickupInterval: CGFloat = 5.0
     private var nextPickupX: CGFloat = 600
+    private var nextPortaPottyX: CGFloat = 900
     private var nextObstacleX: CGFloat = 500
     private var nextBgX: CGFloat = 100
+    private var nextOtherRunnerX: CGFloat = 700
     private var screenH: CGFloat = 0
     private var screenW: CGFloat = 0
     private var groundY: CGFloat = 0
@@ -86,38 +90,64 @@ class TerrainManager {
         for n in groundNodes  { n.position.x -= dx }
         for n in obstacleNodes { n.position.x -= dx }
         for n in pickupNodes  { n.position.x -= dx }
+        for n in portaPottyNodes { n.position.x -= dx }
         for n in bgNodes      { n.position.x -= dx * 0.35 }
         for n in decorNodes   { n.position.x -= dx }
+        for n in otherRunnerNodes { n.position.x -= dx }
 
         // Remove off-screen
         groundNodes   = groundNodes.filter   { keepOrRemove($0) }
         obstacleNodes = obstacleNodes.filter { keepOrRemove($0) }
         pickupNodes   = pickupNodes.filter   { keepOrRemove($0) }
+        portaPottyNodes = portaPottyNodes.filter { keepOrRemove($0) }
         bgNodes       = bgNodes.filter       { keepOrRemoveOffset($0, offset: -400) }
         decorNodes    = decorNodes.filter    { keepOrRemove($0) }
+        otherRunnerNodes = otherRunnerNodes.filter { keepOrRemove($0) }
 
-        // Extend ground
-        while lastGroundX < scene.size.width + 400 {
+        // Right edge of rightmost ground segment (segment width = 220, center at position.x)
+        let segW: CGFloat = 220
+        let rightmostEdge = groundNodes
+            .filter { $0.physicsBody?.categoryBitMask == PhysicsCategory.ground }
+            .map { $0.position.x + segW / 2 }
+            .max() ?? 0
+        lastGroundX = rightmostEdge
+
+        // Extend ground so there is always floor ahead of the runner (no gaps)
+        while lastGroundX < scene.size.width + 500 {
             spawnGroundSegment(at: lastGroundX)
         }
-        for n in groundNodes { if n.position.x > lastGroundX { lastGroundX = n.position.x } }
 
         // Spawn obstacles and pickups
         nextObstacleX -= dx
         nextPickupX   -= dx
+        nextPortaPottyX -= dx
         nextBgX       -= dx
 
         if nextObstacleX < scene.size.width + 200 {
             spawnObstacle(atX: scene.size.width + CGFloat.random(in: 100...250))
-            nextObstacleX = scene.size.width + CGFloat.random(in: 380...560)
+            // Time-based spacing: 5–10 s between obstacles normally; harder levels (lower scale) get 3–6 s
+            let baseSeconds: CGFloat = levelConfig.obstacleGapScale <= 1.0
+                ? CGFloat.random(in: 3...6)   // harder levels: more frequent
+                : CGFloat.random(in: 5...10)  // normal/easy: few obstacles
+            let effectiveSeconds = baseSeconds * max(1.0, levelConfig.obstacleGapScale)
+            let gap = scrollSpeed * effectiveSeconds
+            nextObstacleX = scene.size.width + gap
         }
         if nextPickupX < scene.size.width + 100 {
             spawnPickup(atX: scene.size.width + CGFloat.random(in: 80...200))
             nextPickupX = scene.size.width + CGFloat.random(in: 300...480)
         }
+        if nextPortaPottyX < scene.size.width + 200 {
+            spawnPortaPotty(atX: scene.size.width + CGFloat.random(in: 120...280))
+            nextPortaPottyX = scene.size.width + CGFloat.random(in: 650...950)
+        }
         if nextBgX < scene.size.width + 200 {
             spawnBackground(x: scene.size.width + CGFloat.random(in: 100...300), extended: false)
             nextBgX = scene.size.width + CGFloat.random(in: 200...500)
+        }
+        if nextOtherRunnerX < scene.size.width + 200 {
+            spawnOtherRunner(atX: scene.size.width + CGFloat.random(in: 120...280))
+            nextOtherRunnerX = scene.size.width + CGFloat.random(in: 520...950)
         }
 
         // Aid stations
@@ -150,8 +180,8 @@ class TerrainManager {
         scene.addChild(node)
         obstacleNodes.append(node)
 
-        // Occasional double-obstacle
-        if Double.random(in: 0...1) < 0.15 {
+        // Occasional double-obstacle only on harder levels (gap scale <= 1)
+        if levelConfig.obstacleGapScale <= 1.0 && Double.random(in: 0...1) < 0.08 {
             let node2 = makeObstacleNode(type: type)
             node2.position = CGPoint(x: x + CGFloat.random(in: 60...90), y: groundY + obstacleHeight(type) / 2)
             node2.zPosition = 10
@@ -193,7 +223,7 @@ class TerrainManager {
             pb.isDynamic = false
             pb.categoryBitMask = PhysicsCategory.obstacle
             pb.contactTestBitMask = PhysicsCategory.player
-            pb.collisionBitMask = PhysicsCategory.player
+            pb.collisionBitMask = 0
             container.physicsBody = pb
         case .log:
             let shape = SKShapeNode(rectOf: CGSize(width: 55, height: 20), cornerRadius: 6)
@@ -205,7 +235,7 @@ class TerrainManager {
             pb.isDynamic = false
             pb.categoryBitMask = PhysicsCategory.obstacle
             pb.contactTestBitMask = PhysicsCategory.player
-            pb.collisionBitMask = PhysicsCategory.player
+            pb.collisionBitMask = 0
             container.physicsBody = pb
         case .cactus:
             let trunk = SKShapeNode(rectOf: CGSize(width: 14, height: 50), cornerRadius: 5)
@@ -222,7 +252,7 @@ class TerrainManager {
             pb.isDynamic = false
             pb.categoryBitMask = PhysicsCategory.obstacle
             pb.contactTestBitMask = PhysicsCategory.player
-            pb.collisionBitMask = PhysicsCategory.player
+            pb.collisionBitMask = 0
             container.physicsBody = pb
         case .boulder:
             let shape = SKShapeNode(circleOfRadius: 22)
@@ -234,7 +264,7 @@ class TerrainManager {
             pb.isDynamic = false
             pb.categoryBitMask = PhysicsCategory.obstacle
             pb.contactTestBitMask = PhysicsCategory.player
-            pb.collisionBitMask = PhysicsCategory.player
+            pb.collisionBitMask = 0
             container.physicsBody = pb
         case .mudPuddle, .waterCross, .crater:
             let shape = SKShapeNode(ellipseOf: CGSize(width: 70, height: 12))
@@ -260,7 +290,7 @@ class TerrainManager {
             pb.isDynamic = false
             pb.categoryBitMask = PhysicsCategory.obstacle
             pb.contactTestBitMask = PhysicsCategory.player
-            pb.collisionBitMask = PhysicsCategory.player
+            pb.collisionBitMask = 0
             container.physicsBody = pb
         default:
             let shape = SKShapeNode(circleOfRadius: 18)
@@ -270,10 +300,24 @@ class TerrainManager {
             pb.isDynamic = false
             pb.categoryBitMask = PhysicsCategory.obstacle
             pb.contactTestBitMask = PhysicsCategory.player
-            pb.collisionBitMask = PhysicsCategory.player
+            pb.collisionBitMask = 0
             container.physicsBody = pb
         }
         container.name = "obstacle_\(type.rawValue)"
+        // Danger indicator: red ring so obstacles are clearly "avoid"
+        let dangerRing = SKShapeNode(circleOfRadius: 28)
+        dangerRing.fillColor = .clear
+        dangerRing.strokeColor = UIColor(red: 1, green: 0.2, blue: 0.2, alpha: 0.9)
+        dangerRing.lineWidth = 3
+        dangerRing.glowWidth = 2
+        dangerRing.zPosition = -1
+        container.addChild(dangerRing)
+        let warnIcon = SKLabelNode(text: "⚠")
+        warnIcon.fontSize = 18
+        warnIcon.verticalAlignmentMode = .center
+        warnIcon.position = CGPoint(x: 0, y: 22)
+        warnIcon.zPosition = 10
+        container.addChild(warnIcon)
         return container
     }
 
@@ -302,6 +346,18 @@ class TerrainManager {
                        UIColor(red:0.15,green:0.6,blue:0.3,alpha:0.85)
         bg.strokeColor = UIColor.white.withAlphaComponent(0.6)
         bg.lineWidth = 2
+        // Friendly "tap to collect" glow so goodies are clearly helpful
+        let helpRing = SKShapeNode(circleOfRadius: 26)
+        helpRing.fillColor = UIColor(red: 0.2, green: 1, blue: 0.4, alpha: 0.15)
+        helpRing.strokeColor = UIColor(red: 0.2, green: 0.9, blue: 0.4, alpha: 0.7)
+        helpRing.lineWidth = 2
+        helpRing.glowWidth = 1
+        helpRing.zPosition = -1
+        bg.addChild(helpRing)
+        helpRing.run(SKAction.repeatForever(SKAction.sequence([
+            SKAction.fadeAlpha(to: 0.08, duration: 0.6),
+            SKAction.fadeAlpha(to: 0.25, duration: 0.6)
+        ])))
 
         let label = SKLabelNode(text: emoji)
         label.fontSize = 22
@@ -329,6 +385,16 @@ class TerrainManager {
 
         scene.addChild(bg)
         pickupNodes.append(bg)
+    }
+
+    /// Spawns a non-blocking other runner (visual only, no physics — tap to pass for messages).
+    private func spawnOtherRunner(atX x: CGFloat) {
+        guard let scene = scene else { return }
+        let runner = OtherRunner()
+        runner.position = CGPoint(x: x, y: groundY + 40)
+        runner.zPosition = 18
+        scene.addChild(runner)
+        otherRunnerNodes.append(runner)
     }
 
     func spawnAidStation(atX x: CGFloat, index: Int) {
@@ -385,6 +451,69 @@ class TerrainManager {
 
         scene.addChild(container)
         pickupNodes.append(container)
+    }
+
+    func spawnPortaPotty(atX x: CGFloat) {
+        guard let scene = scene else { return }
+        let container = SKNode()
+        container.position = CGPoint(x: x, y: groundY)
+        container.zPosition = 14
+        container.name = "portapotty"
+
+        // Porta potty shape: blue box with door and roof
+        let boxW: CGFloat = 52
+        let boxH: CGFloat = 72
+        let box = SKShapeNode(rectOf: CGSize(width: boxW, height: boxH), cornerRadius: 4)
+        box.fillColor = UIColor(red: 0.15, green: 0.35, blue: 0.75, alpha: 1)
+        box.strokeColor = UIColor(red: 0.1, green: 0.25, blue: 0.6, alpha: 1)
+        box.lineWidth = 2
+        container.addChild(box)
+
+        // Door rectangle (darker)
+        let doorW: CGFloat = 22
+        let doorH: CGFloat = 50
+        let door = SKShapeNode(rectOf: CGSize(width: doorW, height: doorH), cornerRadius: 2)
+        door.fillColor = UIColor(red: 0.08, green: 0.2, blue: 0.5, alpha: 1)
+        door.strokeColor = UIColor(red: 0.05, green: 0.15, blue: 0.4, alpha: 1)
+        door.lineWidth = 1
+        door.position = CGPoint(x: -6, y: -2)
+        container.addChild(door)
+
+        // Roof / vent
+        let roof = SKShapeNode(rectOf: CGSize(width: boxW + 8, height: 12), cornerRadius: 2)
+        roof.fillColor = UIColor(red: 0.2, green: 0.45, blue: 0.85, alpha: 1)
+        roof.strokeColor = UIColor(red: 0.1, green: 0.3, blue: 0.6, alpha: 1)
+        roof.lineWidth = 1
+        roof.position = CGPoint(x: 0, y: boxH/2 + 6)
+        container.addChild(roof)
+
+        let icon = SKLabelNode(text: "🚻")
+        icon.fontSize = 28
+        icon.verticalAlignmentMode = .center
+        icon.position = CGPoint(x: 8, y: 0)
+        container.addChild(icon)
+
+        // Tap hint glow
+        let glow = SKShapeNode(rectOf: CGSize(width: boxW + 24, height: boxH + 24), cornerRadius: 8)
+        glow.fillColor = UIColor(red: 0.2, green: 0.5, blue: 1, alpha: 0.12)
+        glow.strokeColor = UIColor(red: 0.3, green: 0.6, blue: 1, alpha: 0.5)
+        glow.lineWidth = 2
+        glow.zPosition = -1
+        container.addChild(glow)
+        glow.run(SKAction.repeatForever(SKAction.sequence([
+            SKAction.fadeAlpha(to: 0.06, duration: 0.7),
+            SKAction.fadeAlpha(to: 0.22, duration: 0.7)
+        ])))
+
+        let triggerBody = SKPhysicsBody(rectangleOf: CGSize(width: boxW + 20, height: boxH + 20))
+        triggerBody.isDynamic = false
+        triggerBody.categoryBitMask = PhysicsCategory.pickup
+        triggerBody.contactTestBitMask = PhysicsCategory.player
+        triggerBody.collisionBitMask = 0
+        container.physicsBody = triggerBody
+
+        scene.addChild(container)
+        portaPottyNodes.append(container)
     }
 
     private func spawnBackground(x: CGFloat, extended: Bool) {

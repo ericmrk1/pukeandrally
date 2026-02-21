@@ -1,7 +1,7 @@
 import SpriteKit
 
 enum PlayerState {
-    case running, sprinting, walking, jumping, celebration
+    case running, sprinting, walking, hiking, jumping, celebration
 }
 
 class Player: SKNode {
@@ -144,6 +144,12 @@ class Player: SKNode {
             leftArm.zRotation = -angle * 0.3
             rightArm.zRotation = angle * 0.3
             body.position.y = sin(phase * .pi * 2 * 3) * 1
+        case .hiking:
+            leftLeg.zRotation = angle * 0.7
+            rightLeg.zRotation = -angle * 0.7
+            leftArm.zRotation = -angle * 0.5
+            rightArm.zRotation = angle * 0.5
+            body.position.y = sin(phase * .pi * 3 * 3) * 1.5
         case .jumping:
             leftLeg.zRotation = 0.4
             rightLeg.zRotation = -0.4
@@ -173,8 +179,8 @@ class Player: SKNode {
 
     func jump() {
         guard let pb = physicsBody else { return }
-        pb.velocity = CGVector(dx: pb.velocity.dx, dy: 0)
-        pb.applyImpulse(CGVector(dx: 0, dy: GameConstants.jumpImpulse))
+        pb.velocity = CGVector(dx: 0, dy: 0)
+        pb.applyImpulse(CGVector(dx: GameConstants.jumpImpulseForward, dy: GameConstants.jumpImpulse))
         state = .jumping
     }
 
