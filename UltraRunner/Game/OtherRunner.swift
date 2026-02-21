@@ -1,8 +1,12 @@
 import SpriteKit
 
 /// Visual-only NPC runner with configurable outfit colors. No physics body — they never block
-/// the player; tap to target and pass them to see "On Your Left" / "Stay Hard" / "Who's gonna carry the boats".
+/// the player. When you pass any runner the game says "On your left"; tap one for supportive/funny phrases.
+/// speedFactor: < 1 = slower (player passes them), > 1 = faster (they pass the player).
 class OtherRunner: SKNode {
+
+    /// Movement relative to world scroll: < 1 slower (get passed), > 1 faster (pass the player).
+    var speedFactor: CGFloat = 1.0
 
     private var body: SKShapeNode!
     private var head: SKShapeNode!

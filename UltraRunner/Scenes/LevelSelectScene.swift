@@ -1,4 +1,5 @@
 import SpriteKit
+import UIKit
 
 class LevelSelectScene: SKScene {
 
@@ -16,7 +17,7 @@ class LevelSelectScene: SKScene {
         addChild(bg)
 
         let title = SKLabelNode(fontNamed: "AvenirNext-Heavy")
-        title.text = "🗺 SELECT COURSE"
+        title.text = "SELECT COURSE"
         title.fontSize = 34
         title.fontColor = UIColor(red:1,green:0.85,blue:0.2,alpha:1)
         title.position = CGPoint(x: size.width/2, y: size.height - 45)

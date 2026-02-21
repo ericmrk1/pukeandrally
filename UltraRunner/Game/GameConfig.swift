@@ -51,7 +51,7 @@ let ALL_LEVELS: [LevelConfig] = [
         skyBottom: UIColor(red:0.5,green:0.7,blue:0.9,alpha:1),
         groundColor: UIColor(red:0.45,green:0.35,blue:0.25,alpha:1),
         accentColor: UIColor(red:0.7,green:0.8,blue:0.6,alpha:1),
-        obstacleTypes: [.rock,.boulder,.log,.mudPuddle],
+        obstacleTypes: [.rock,.boulder,.log,.mudPuddle,.waterCross],
         particleColor: UIColor.white,
         aidStations: 5, distanceKm: 160,
         obstacleGapScale: 1.0,
@@ -129,7 +129,7 @@ let ALL_LEVELS: [LevelConfig] = [
         skyBottom: UIColor(red:0.5,green:0.65,blue:0.4,alpha:1),
         groundColor: UIColor(red:0.35,green:0.25,blue:0.15,alpha:1),
         accentColor: UIColor(red:0.6,green:0.85,blue:0.5,alpha:1),
-        obstacleTypes: [.log,.root,.rock,.mudPuddle],
+        obstacleTypes: [.log,.root,.rock,.mudPuddle,.waterCross],
         particleColor: UIColor(red:0.7,green:0.5,blue:0.3,alpha:0.4),
         aidStations: 5, distanceKm: 80,
         obstacleGapScale: 1.5,
@@ -142,7 +142,7 @@ let ALL_LEVELS: [LevelConfig] = [
         skyBottom: UIColor(red:0.6,green:0.4,blue:0.2,alpha:1),
         groundColor: UIColor(red:0.65,green:0.35,blue:0.15,alpha:1),
         accentColor: UIColor(red:0.9,green:0.5,blue:0.2,alpha:1),
-        obstacleTypes: [.rock,.boulder,.sandDune],
+        obstacleTypes: [.rock,.boulder,.sandDune,.waterCross],
         particleColor: UIColor(red:0.9,green:0.6,blue:0.3,alpha:0.5),
         aidStations: 5, distanceKm: 40,
         obstacleGapScale: 2.0,
@@ -172,7 +172,7 @@ struct GameConstants {
     /// Lower gravity during jump for a floaty "moon jump" (slow up, slow down).
     static let gravityJump: CGFloat = -8
     static let jumpImpulse: CGFloat = 220
-    static let jumpImpulseForward: CGFloat = 95
+    static let jumpImpulseForward: CGFloat = 160  // strong forward so you land ahead of takeoff
     static let energyMax: CGFloat = 100
     static let energyDrainRun: CGFloat = 3.5      // per second
     static let energyDrainSprint: CGFloat = 9.0

@@ -11,8 +11,14 @@ class HUDNode: SKNode {
     private var speedLabel: SKLabelNode!
     private var energyIcon: SKLabelNode!
     private var stateLabel: SKLabelNode!
+    private var dnfStrikesLabel: SKLabelNode!
     private var aidProgress: [SKShapeNode] = []
     private var screenSize: CGSize
+
+    /// Vertical slots for messages so they stack above/below and don't overlap
+    private static let messageSlotCount = 6
+    private var messageSlotInUse: [Bool] = Array(repeating: false, count: 6)
+    private let messageSlotSpacing: CGFloat = 48
 
     private var _score: Int = 0
     private var _energy: CGFloat = GameConstants.energyMax
@@ -29,6 +35,21 @@ class HUDNode: SKNode {
         set {
             _energy = max(0, min(newValue, GameConstants.energyMax))
             updateEnergyBar()
+        }
+    }
+
+    /// 0, 1, or 2 strikes toward DNF (3rd = DNF). Displayed as e.g. "⚠️ 0/3"
+    var dnfStrikes: Int = 0 {
+        didSet {
+            let n = min(3, max(0, dnfStrikes))
+            dnfStrikesLabel.text = "⚠️ \(n)/3"
+            if n == 0 {
+                dnfStrikesLabel.fontColor = UIColor.white.withAlphaComponent(0.5)
+            } else if n == 1 {
+                dnfStrikesLabel.fontColor = UIColor(red: 1, green: 0.75, blue: 0.2, alpha: 1)
+            } else {
+                dnfStrikesLabel.fontColor = UIColor(red: 1, green: 0.35, blue: 0.2, alpha: 1)
+            }
         }
     }
 
@@ -138,6 +159,16 @@ class HUDNode: SKNode {
         stateLabel.zPosition = 100
         stateLabel.text = "🏃 RUNNING"
         addChild(stateLabel)
+
+        // DNF strikes (0/3 = energy hit zero count; 3rd time = DNF)
+        dnfStrikesLabel = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+        dnfStrikesLabel.fontSize = 12
+        dnfStrikesLabel.fontColor = UIColor.white.withAlphaComponent(0.5)
+        dnfStrikesLabel.horizontalAlignmentMode = .left
+        dnfStrikesLabel.position = CGPoint(x: 16, y: barY - 28)
+        dnfStrikesLabel.zPosition = 100
+        dnfStrikesLabel.text = "⚠️ 0/3"
+        addChild(dnfStrikesLabel)
     }
 
     private func updateEnergyBar() {
@@ -189,18 +220,28 @@ class HUDNode: SKNode {
         case .hiking:    stateLabel.text = "🥾 HIKING";   stateLabel.fontColor = UIColor(red:0.4,green:0.8,blue:0.4,alpha:1)
         case .jumping:   stateLabel.text = "🦘 JUMP!";    stateLabel.fontColor = .white
         case .celebration: stateLabel.text = "🎉 AID STATION!"; stateLabel.fontColor = UIColor(red:1,green:0.8,blue:0.2,alpha:1)
+        case .dead: stateLabel.text = "💀 GAME OVER"; stateLabel.fontColor = UIColor(red:0.6,green:0.2,blue:0.2,alpha:1)
         }
     }
 
     func showMessage(_ text: String, color: UIColor = .white) {
+        let slot = messageSlotInUse.firstIndex(where: { !$0 }) ?? 0
+        messageSlotInUse[slot] = true
+
+        // Keep all messages below the energy bar / HUD (panel bottom ~ height-55, leave margin)
+        let maxMessageY = screenSize.height - 55 - 44
+        let y = maxMessageY - CGFloat(slot) * messageSlotSpacing
+
         let lbl = SKLabelNode(fontNamed: "AvenirNext-Heavy")
         lbl.text = text
         lbl.fontSize = 24
         lbl.fontColor = color
-        lbl.position = CGPoint(x: screenSize.width/2, y: screenSize.height/2 + 60)
+        lbl.position = CGPoint(x: screenSize.width/2, y: y)
         lbl.zPosition = 200
         lbl.setScale(0.5)
         addChild(lbl)
+
+        let slotToFree = slot
         lbl.run(SKAction.sequence([
             SKAction.group([
                 SKAction.scale(to: 1.2, duration: 0.2),
@@ -212,6 +253,10 @@ class HUDNode: SKNode {
                 SKAction.scale(to: 1.5, duration: 0.3),
                 SKAction.fadeOut(withDuration: 0.3)
             ]),
+            SKAction.run { [weak self] in
+                guard slotToFree < HUDNode.messageSlotCount else { return }
+                self?.messageSlotInUse[slotToFree] = false
+            },
             SKAction.removeFromParent()
         ]))
     }

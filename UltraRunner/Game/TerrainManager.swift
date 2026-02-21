@@ -10,6 +10,8 @@ class TerrainManager {
     var bgNodes: [SKNode] = []
     var decorNodes: [SKNode] = []
     var otherRunnerNodes: [SKNode] = []
+    var finishLineNodes: [SKNode] = []
+    private var finishLineSpawned = false
     private var lastGroundX: CGFloat = 0
     private var spawnTimer: CGFloat = 0
     private var bgSpawnTimer: CGFloat = 0
@@ -81,6 +83,21 @@ class TerrainManager {
         groundNodes.append(detail)
     }
 
+    /// Advance the world by a horizontal offset (e.g. when landing from a jump ahead of center).
+    /// Shifts all scrollable nodes left so the ground under the player stays under center.
+    func advanceWorld(by offset: CGFloat) {
+        guard offset > 0 else { return }
+        totalDistance += offset
+        for n in groundNodes       { n.position.x -= offset }
+        for n in obstacleNodes     { n.position.x -= offset }
+        for n in pickupNodes       { n.position.x -= offset }
+        for n in portaPottyNodes   { n.position.x -= offset }
+        for n in bgNodes           { n.position.x -= offset * 0.35 }
+        for n in decorNodes        { n.position.x -= offset }
+        for n in otherRunnerNodes  { n.position.x -= offset }
+        for n in finishLineNodes   { n.position.x -= offset }
+    }
+
     func update(scrollSpeed: CGFloat, dt: CGFloat) {
         guard let scene = scene else { return }
         totalDistance += scrollSpeed * dt
@@ -93,7 +110,11 @@ class TerrainManager {
         for n in portaPottyNodes { n.position.x -= dx }
         for n in bgNodes      { n.position.x -= dx * 0.35 }
         for n in decorNodes   { n.position.x -= dx }
-        for n in otherRunnerNodes { n.position.x -= dx }
+        for n in otherRunnerNodes {
+            guard let r = n as? OtherRunner else { n.position.x -= dx; continue }
+            n.position.x -= dx * r.speedFactor
+        }
+        for n in finishLineNodes { n.position.x -= dx }
 
         // Remove off-screen
         groundNodes   = groundNodes.filter   { keepOrRemove($0) }
@@ -122,6 +143,7 @@ class TerrainManager {
         nextPickupX   -= dx
         nextPortaPottyX -= dx
         nextBgX       -= dx
+        nextOtherRunnerX -= dx
 
         if nextObstacleX < scene.size.width + 200 {
             spawnObstacle(atX: scene.size.width + CGFloat.random(in: 100...250))
@@ -146,8 +168,10 @@ class TerrainManager {
             nextBgX = scene.size.width + CGFloat.random(in: 200...500)
         }
         if nextOtherRunnerX < scene.size.width + 200 {
-            spawnOtherRunner(atX: scene.size.width + CGFloat.random(in: 120...280))
-            nextOtherRunnerX = scene.size.width + CGFloat.random(in: 520...950)
+            spawnOtherRunner(atX: scene.size.width + CGFloat.random(in: 120...280), scrollSpeed: scrollSpeed)
+            // ~1 runner every 10 seconds of travel
+            let gapSeconds = CGFloat.random(in: 8...12)
+            nextOtherRunnerX = scene.size.width + scrollSpeed * gapSeconds
         }
 
         // Aid stations
@@ -159,6 +183,13 @@ class TerrainManager {
                     spawnedAidStations.insert(i)
                 }
             }
+        }
+
+        // Finish line: spawn once when near end of race
+        let finishDistancePx = CGFloat(levelConfig.distanceKm) * GameConstants.distanceUnitsPerKm
+        if !finishLineSpawned && totalDistance >= finishDistancePx - 800 {
+            spawnFinishLine(atX: scene.size.width + 350)
+            finishLineSpawned = true
         }
     }
 
@@ -200,7 +231,7 @@ class TerrainManager {
         case .crater: return 14
         case .tree: return 70
         case .vine: return 60
-        case .waterCross: return 12
+        case .waterCross: return 18
         case .fog: return 40
         case .sandDune: return 30
         case .building: return 80
@@ -266,15 +297,38 @@ class TerrainManager {
             pb.contactTestBitMask = PhysicsCategory.player
             pb.collisionBitMask = 0
             container.physicsBody = pb
-        case .mudPuddle, .waterCross, .crater:
+        case .mudPuddle, .crater:
             let shape = SKShapeNode(ellipseOf: CGSize(width: 70, height: 12))
             let col = type == .mudPuddle ? UIColor(red:0.4,green:0.25,blue:0.1,alpha:0.9) :
-                      type == .waterCross ? UIColor(red:0.2,green:0.5,blue:0.9,alpha:0.8) :
                       UIColor(red:0.3,green:0.15,blue:0.1,alpha:0.9)
             shape.fillColor = col
             shape.strokeColor = col.withAlphaComponent(0.5)
             container.addChild(shape)
             let pb = SKPhysicsBody(rectangleOf: CGSize(width: 65, height: 10))
+            pb.isDynamic = false
+            pb.categoryBitMask = PhysicsCategory.obstacle
+            pb.contactTestBitMask = PhysicsCategory.player
+            pb.collisionBitMask = 0
+            container.physicsBody = pb
+        case .waterCross:
+            // River crossing: wider strip of water that makes you wet
+            let riverW: CGFloat = 90
+            let riverH: CGFloat = 18
+            let shape = SKShapeNode(ellipseOf: CGSize(width: riverW, height: riverH))
+            shape.fillColor = UIColor(red:0.25,green:0.55,blue:0.95,alpha:0.85)
+            shape.strokeColor = UIColor(red:0.15,green:0.4,blue:0.8,alpha:0.9)
+            shape.lineWidth = 2
+            container.addChild(shape)
+            // Ripple lines
+            for i in 0..<3 {
+                let ripple = SKShapeNode(ellipseOf: CGSize(width: riverW - CGFloat(i * 18), height: riverH - CGFloat(i * 4)))
+                ripple.fillColor = .clear
+                ripple.strokeColor = UIColor.white.withAlphaComponent(0.25 - CGFloat(i) * 0.06)
+                ripple.lineWidth = 1
+                ripple.zPosition = -0.5
+                container.addChild(ripple)
+            }
+            let pb = SKPhysicsBody(rectangleOf: CGSize(width: riverW - 8, height: riverH - 4))
             pb.isDynamic = false
             pb.categoryBitMask = PhysicsCategory.obstacle
             pb.contactTestBitMask = PhysicsCategory.player
@@ -304,20 +358,35 @@ class TerrainManager {
             container.physicsBody = pb
         }
         container.name = "obstacle_\(type.rawValue)"
-        // Danger indicator: red ring so obstacles are clearly "avoid"
-        let dangerRing = SKShapeNode(circleOfRadius: 28)
-        dangerRing.fillColor = .clear
-        dangerRing.strokeColor = UIColor(red: 1, green: 0.2, blue: 0.2, alpha: 0.9)
-        dangerRing.lineWidth = 3
-        dangerRing.glowWidth = 2
-        dangerRing.zPosition = -1
-        container.addChild(dangerRing)
-        let warnIcon = SKLabelNode(text: "⚠")
-        warnIcon.fontSize = 18
-        warnIcon.verticalAlignmentMode = .center
-        warnIcon.position = CGPoint(x: 0, y: 22)
-        warnIcon.zPosition = 10
-        container.addChild(warnIcon)
+        // Danger indicator: red ring for most obstacles; blue "wet" hint for river crossings
+        if type == .waterCross {
+            let wetRing = SKShapeNode(circleOfRadius: 38)
+            wetRing.fillColor = .clear
+            wetRing.strokeColor = UIColor(red: 0.2, green: 0.5, blue: 1, alpha: 0.6)
+            wetRing.lineWidth = 2
+            wetRing.zPosition = -1
+            container.addChild(wetRing)
+            let wetIcon = SKLabelNode(text: "💦")
+            wetIcon.fontSize = 20
+            wetIcon.verticalAlignmentMode = .center
+            wetIcon.position = CGPoint(x: 0, y: 28)
+            wetIcon.zPosition = 10
+            container.addChild(wetIcon)
+        } else {
+            let dangerRing = SKShapeNode(circleOfRadius: 28)
+            dangerRing.fillColor = .clear
+            dangerRing.strokeColor = UIColor(red: 1, green: 0.2, blue: 0.2, alpha: 0.9)
+            dangerRing.lineWidth = 3
+            dangerRing.glowWidth = 2
+            dangerRing.zPosition = -1
+            container.addChild(dangerRing)
+            let warnIcon = SKLabelNode(text: "⚠")
+            warnIcon.fontSize = 18
+            warnIcon.verticalAlignmentMode = .center
+            warnIcon.position = CGPoint(x: 0, y: 22)
+            warnIcon.zPosition = 10
+            container.addChild(warnIcon)
+        }
         return container
     }
 
@@ -388,9 +457,16 @@ class TerrainManager {
     }
 
     /// Spawns a non-blocking other runner (visual only, no physics — tap to pass for messages).
-    private func spawnOtherRunner(atX x: CGFloat) {
+    /// Most are slower (player passes them); occasionally one is faster (passes the player).
+    private func spawnOtherRunner(atX x: CGFloat, scrollSpeed: CGFloat) {
         guard let scene = scene else { return }
         let runner = OtherRunner()
+        // ~12% chance: faster than player (they pass you); rest: slower (you pass them)
+        if Double.random(in: 0...1) < 0.12 {
+            runner.speedFactor = CGFloat.random(in: 1.05...1.28)
+        } else {
+            runner.speedFactor = CGFloat.random(in: 0.5...0.92)
+        }
         runner.position = CGPoint(x: x, y: groundY + 40)
         runner.zPosition = 18
         scene.addChild(runner)
@@ -514,6 +590,101 @@ class TerrainManager {
 
         scene.addChild(container)
         portaPottyNodes.append(container)
+    }
+
+    func spawnFinishLine(atX x: CGFloat) {
+        guard let scene = scene else { return }
+        let container = SKNode()
+        container.position = CGPoint(x: x, y: groundY)
+        container.zPosition = 16
+        container.name = "finish_line"
+
+        let poleHeight: CGFloat = 100
+        let tapeWidth: CGFloat = 180
+        let poleSpacing: CGFloat = 160
+
+        // Left pole
+        let leftPole = SKShapeNode(rectOf: CGSize(width: 8, height: poleHeight))
+        leftPole.fillColor = UIColor.white
+        leftPole.strokeColor = UIColor(red: 0.3, green: 0.3, blue: 0.35, alpha: 1)
+        leftPole.lineWidth = 1
+        leftPole.position = CGPoint(x: -poleSpacing / 2, y: poleHeight / 2)
+        container.addChild(leftPole)
+
+        // Right pole
+        let rightPole = SKShapeNode(rectOf: CGSize(width: 8, height: poleHeight))
+        rightPole.fillColor = UIColor.white
+        rightPole.strokeColor = UIColor(red: 0.3, green: 0.3, blue: 0.35, alpha: 1)
+        rightPole.lineWidth = 1
+        rightPole.position = CGPoint(x: poleSpacing / 2, y: poleHeight / 2)
+        container.addChild(rightPole)
+
+        // Checkered finish tape (horizontal banner)
+        let cellSize: CGFloat = 14
+        let cols = Int(tapeWidth / cellSize) + 1
+        let rows = 4
+        for row in 0..<rows {
+            for col in 0..<cols {
+                let cell = SKShapeNode(rectOf: CGSize(width: cellSize, height: cellSize))
+                let isBlack = (row + col) % 2 == 0
+                cell.fillColor = isBlack ? .black : .white
+                cell.strokeColor = .clear
+                cell.position = CGPoint(
+                    x: -tapeWidth / 2 + CGFloat(col) * cellSize + cellSize / 2,
+                    y: poleHeight - 8 - CGFloat(row) * cellSize - cellSize / 2
+                )
+                container.addChild(cell)
+            }
+        }
+
+        // Finishing flags (triangular) on both poles
+        let flagColors: [UIColor] = [
+            UIColor(red: 1, green: 0.2, blue: 0.2, alpha: 1),
+            UIColor(red: 1, green: 0.85, blue: 0.2, alpha: 1),
+            UIColor(red: 0.2, green: 0.7, blue: 0.3, alpha: 1),
+            UIColor(red: 0.2, green: 0.4, blue: 1, alpha: 1),
+        ]
+        for (poleX, side) in [(CGFloat(-poleSpacing / 2), CGFloat(1)), (CGFloat(poleSpacing / 2), CGFloat(-1))] {
+            for i in 0..<4 {
+                let path = UIBezierPath()
+                path.move(to: CGPoint(x: 0, y: 0))
+                path.addLine(to: CGPoint(x: side * 22, y: 0))
+                path.addLine(to: CGPoint(x: side * 22, y: 18))
+                path.close()
+                let flag = SKShapeNode(path: path.cgPath)
+                flag.fillColor = flagColors[i]
+                flag.strokeColor = flag.fillColor.withAlphaComponent(0.8)
+                flag.lineWidth = 1
+                flag.position = CGPoint(x: poleX + side * 6, y: poleHeight - 20 - CGFloat(i) * 20)
+                flag.zRotation = side > 0 ? 0 : .pi
+                container.addChild(flag)
+            }
+        }
+
+        // "FINISH" label
+        let finishLbl = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+        finishLbl.text = "FINISH"
+        finishLbl.fontSize = 20
+        finishLbl.fontColor = UIColor(red: 1, green: 0.9, blue: 0.2, alpha: 1)
+        finishLbl.position = CGPoint(x: 0, y: poleHeight + 18)
+        finishLbl.zPosition = 1
+        container.addChild(finishLbl)
+
+        // Subtle glow
+        let glow = SKShapeNode(rectOf: CGSize(width: tapeWidth + 60, height: poleHeight + 30))
+        glow.fillColor = UIColor(red: 1, green: 0.9, blue: 0.3, alpha: 0.08)
+        glow.strokeColor = UIColor(red: 1, green: 0.85, blue: 0.2, alpha: 0.25)
+        glow.lineWidth = 2
+        glow.zPosition = -1
+        glow.position = CGPoint(x: 0, y: poleHeight / 2 + 10)
+        container.addChild(glow)
+        glow.run(SKAction.repeatForever(SKAction.sequence([
+            SKAction.fadeAlpha(to: 0.04, duration: 0.6),
+            SKAction.fadeAlpha(to: 0.15, duration: 0.6)
+        ])))
+
+        scene.addChild(container)
+        finishLineNodes.append(container)
     }
 
     private func spawnBackground(x: CGFloat, extended: Bool) {

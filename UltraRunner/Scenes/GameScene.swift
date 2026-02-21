@@ -31,9 +31,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private let maxObstacleHits = 3
     private var hitCooldown: CGFloat = 0
 
-    /// Time spent at 0% energy; after 3 seconds we DNF and return to menu
-    private var zeroEnergyElapsed: TimeInterval = 0
-    private let zeroEnergyDNFThreshold: TimeInterval = 3.0
+    /// DNF after energy hits 0% this many times (each recovery counts as one "strike")
+    private var timesEnergyHitZero: Int = 0
+    private var wasEnergyAboveZero: Bool = true
 
     /// When player taps an aid station, we show the tent overlay and store the node until they "Return to race"
     private var tentOverlay: SKNode?
@@ -45,11 +45,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private var pendingPortaPottyNode: SKNode?
     private var pottyChoice: String? = nil  // "poop" or "puke" when selected
 
-    /// Tap on another runner to "target" them; when we pass them, show a pass message
-    private var tappedOtherRunner: SKNode?
+    /// Runners we've already shown "On your left" for (so we don't repeat)
+    private var passedRunnerIDs: Set<ObjectIdentifier> = []
 
     private var audioPlayers: [String: AVAudioPlayer] = [:]
     private var lastFootstep: CGFloat = 0
+    /// Keeps fart engine alive until playback finishes.
+    private var fartEngineHolder: (AVAudioEngine, AVAudioPlayerNode)?
 
     // MARK: - Setup
     override func didMove(to view: SKView) {
@@ -176,43 +178,45 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
 
     private func setupBottomButtons() {
-        let barH: CGFloat = 52
-        let barY = barH / 2 + 6
-        let panel = SKShapeNode(rectOf: CGSize(width: size.width, height: barH), cornerRadius: 0)
-        panel.fillColor = UIColor.black.withAlphaComponent(0.55)
-        panel.strokeColor = UIColor.white.withAlphaComponent(0.2)
-        panel.lineWidth = 1
-        panel.position = CGPoint(x: size.width / 2, y: barY)
-        panel.zPosition = 95
-        panel.name = "bottom_bar"
-        addChild(panel)
+        let btnW: CGFloat = 76
+        let btnH: CGFloat = 40
+        let rowSpacing: CGFloat = 48
+        let bottomPadding: CGFloat = 28
+        let sidePadding: CGFloat = 88
 
-        let btnW: CGFloat = 72
-        let spacing = size.width / 7
-        func makeButton(text: String, name: String, i: Int) -> SKNode {
+        func makeButton(text: String, name: String, x: CGFloat, y: CGFloat) -> SKNode {
             let container = SKNode()
-            container.position = CGPoint(x: spacing * CGFloat(i + 1), y: barY)
+            container.position = CGPoint(x: x, y: y)
             container.zPosition = 96
             container.name = name
-            let bg = SKShapeNode(rectOf: CGSize(width: btnW, height: 36), cornerRadius: 8)
-            bg.fillColor = UIColor.white.withAlphaComponent(0.2)
+            let bg = SKShapeNode(rectOf: CGSize(width: btnW, height: btnH), cornerRadius: 10)
+            bg.fillColor = UIColor.white.withAlphaComponent(0.25)
             bg.strokeColor = UIColor.white.withAlphaComponent(0.5)
             bg.lineWidth = 1
             container.addChild(bg)
             let lbl = SKLabelNode(fontNamed: "AvenirNext-Bold")
             lbl.text = text
-            lbl.fontSize = 13
+            lbl.fontSize = 14
             lbl.fontColor = .white
             lbl.verticalAlignmentMode = .center
             container.addChild(lbl)
             return container
         }
-        addChild(makeButton(text: "🚶 Walk", name: "btn_walk", i: 0))
-        addChild(makeButton(text: "🥾 Hike", name: "btn_hike", i: 1))
-        addChild(makeButton(text: "🏃 Run", name: "btn_run", i: 2))
-        addChild(makeButton(text: "🦘 Jump", name: "btn_jump", i: 3))
-        addChild(makeButton(text: "◀ Menu", name: "btn_menu", i: 4))
-        addChild(makeButton(text: "🔄 Restart", name: "btn_restart", i: 5))
+
+        // Left thumb zone: Walk (bottom), Hike (above)
+        let leftX = sidePadding
+        addChild(makeButton(text: "🚶 Walk", name: "btn_walk", x: leftX, y: bottomPadding))
+        addChild(makeButton(text: "🥾 Hike", name: "btn_hike", x: leftX, y: bottomPadding + rowSpacing))
+
+        // Right thumb zone: Jump (bottom), Run (above)
+        let rightX = size.width - sidePadding
+        addChild(makeButton(text: "🦘 Jump", name: "btn_jump", x: rightX, y: bottomPadding))
+        addChild(makeButton(text: "🏃 Run", name: "btn_run", x: rightX, y: bottomPadding + rowSpacing))
+
+        // Center: Menu & Restart (less frequent)
+        let centerY = bottomPadding + rowSpacing / 2
+        addChild(makeButton(text: "◀ Menu", name: "btn_menu", x: size.width / 2 - 52, y: centerY))
+        addChild(makeButton(text: "🔄 Restart", name: "btn_restart", x: size.width / 2 + 52, y: centerY))
     }
 
     private func goToMenu() {
@@ -271,11 +275,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             for node in nodesAtPoint {
                 let name = tentButtonName(from: node)
                 if let n = name, n.hasPrefix("tent_") {
-                    if n == "tent_return" {
-                        leaveTentAndContinue()
-                    } else {
+                    if n != "tent_return" {
                         showTentOptionFeedback(optionName: n)
                     }
+                    leaveTentAndContinue()
                     return
                 }
             }
@@ -287,16 +290,16 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             for node in nodesAtPoint {
                 let name = node.name ?? node.parent?.name ?? ""
                 if name.hasPrefix("potty_") {
-                    if name == "potty_exit" {
-                        leavePortaPotty()
-                    } else if name == "potty_poop" {
+                    if name == "potty_poop" {
                         pottyChoice = "poop"
-                        playSound("flush")
+                        playFartSound()
                         showPottyEmojiFeedback(emoji: "💩", text: "Much better!")
+                        leavePortaPotty()
                     } else if name == "potty_puke" {
                         pottyChoice = "puke"
-                        playSound("bleh")
+                        playFeelBetterSound()
                         showPottyEmojiFeedback(emoji: "🤮", text: "Feeling lighter!")
+                        leavePortaPotty()
                     }
                     return
                 }
@@ -304,9 +307,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             return
         }
 
-        // Tap on another runner to target them – message shows when you pass them
-        if let runnerNode = findOtherRunnerNode(in: nodesAtPoint) {
-            tappedOtherRunner = runnerNode
+        // Tap on another runner – show a supportive/funny phrase right away
+        if findOtherRunnerNode(in: nodesAtPoint) != nil {
+            let phrase = GameScene.tapPhrases.randomElement() ?? "Way to go!"
+            hud.showMessage(phrase, color: UIColor(red:1,green:0.85,blue:0.3,alpha:1))
             return
         }
 
@@ -374,7 +378,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
         clampPlayerToScreen()
         updateEnergy(dt: dt)
-        checkZeroEnergyDNF(dt: Double(dt))
+        checkZeroEnergyDNF()
         updatePlayerState(dt: dt)
         updateSpeed(dt: dt)
         terrainManager.update(scrollSpeed: currentSpeed, dt: dt)
@@ -382,22 +386,48 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         updateHitCooldown(dt: dt)
         checkAidStationProgress()
         spawnParticleTrail(dt: dt)
-        checkPassedTappedRunner()
+        checkPassedAnyRunner()
     }
 
-    private static let passMessages = ["On Your Left", "Stay Hard", "Who's gonna carry the boats"]
+    /// Shown automatically when you pass any runner
+    private static let passMessage = "On your left"
 
-    private func checkPassedTappedRunner() {
-        guard let runner = tappedOtherRunner else { return }
-        if runner.parent == nil {
-            tappedOtherRunner = nil
-            return
-        }
+    /// Shown when you tap a runner (supportive, funny, Goggins-style)
+    private static let tapPhrases = [
+        "Way to go!",
+        "Out of the way, slowpoke!",
+        "Stay hard!",
+        "Who's gonna carry the boats?!",
+        "You don't know me!",
+        "Can't hurt me!",
+        "They don't know me son!",
+        "Stay hard or go home!",
+        "Nobody's coming to save you!",
+        "Take souls!",
+        "You're a different breed!",
+        "Embrace the suck!",
+        "Don't stop when you're tired.",
+        "Do it when they're sleeping!",
+        "No rep left behind!",
+        "Nice pace… said nobody.",
+        "My grandma runs faster!",
+        "See you at the finish!",
+        "Looking strong!",
+        "Let's go!",
+    ]
+
+    private func checkPassedAnyRunner() {
         let playerCenterX = size.width / 2
-        if runner.position.x < playerCenterX {
-            let message = GameScene.passMessages.randomElement() ?? "On Your Left"
-            hud.showMessage(message, color: UIColor(red:1,green:0.85,blue:0.3,alpha:1))
-            tappedOtherRunner = nil
+        let currentRunnerIDs = Set(terrainManager.otherRunnerNodes.map { ObjectIdentifier($0) })
+        passedRunnerIDs = passedRunnerIDs.intersection(currentRunnerIDs)
+
+        for runner in terrainManager.otherRunnerNodes {
+            guard runner.parent != nil, runner.position.x < playerCenterX else { continue }
+            let id = ObjectIdentifier(runner)
+            guard !passedRunnerIDs.contains(id) else { continue }
+            passedRunnerIDs.insert(id)
+            hud.showMessage(GameScene.passMessage, color: UIColor(red:1,green:0.85,blue:0.3,alpha:1))
+            break
         }
     }
 
@@ -414,15 +444,22 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         hud.energy = energy
     }
 
-    private func checkZeroEnergyDNF(dt: TimeInterval) {
+    private func checkZeroEnergyDNF() {
         guard isAlive else { return }
         if energy <= 0 {
-            zeroEnergyElapsed += dt
-            if zeroEnergyElapsed >= zeroEnergyDNFThreshold {
-                triggerDNF()
+            if wasEnergyAboveZero {
+                timesEnergyHitZero += 1
+                wasEnergyAboveZero = false
+                if timesEnergyHitZero >= 3 {
+                    triggerDNF()
+                    return
+                }
+                hud.showMessage("⚠️ \(timesEnergyHitZero)/3 — Energy empty!", color: UIColor(red: 1, green: 0.7, blue: 0.2, alpha: 1))
+                hud.showMessage("DNF!", color: UIColor(red: 1, green: 0.7, blue: 0.2, alpha: 1))
+
             }
         } else {
-            zeroEnergyElapsed = 0
+            wasEnergyAboveZero = true
         }
     }
 
@@ -430,6 +467,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         isAlive = false
         currentSpeed = 0
         targetSpeed = 0
+        player.state = .dead
         hud.showMessage("DNF — Did Not Finish", color: UIColor(red: 0.95, green: 0.2, blue: 0.2, alpha: 1))
         run(SKAction.sequence([
             SKAction.wait(forDuration: 2.0),
@@ -474,6 +512,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private func updateHUD() {
         let kmTraveled = terrainManager.totalDistance / GameConstants.distanceUnitsPerKm
         hud.score = score
+        hud.dnfStrikes = timesEnergyHitZero
         hud.updateDistance(kmTraveled, total: levelConfig.distanceKm)
         // Points for time bonus
         score = max(0, score + Int(GameConstants.pointsPerSecond * 0.016))
@@ -490,6 +529,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let centerX = size.width / 2
         let horizontalMargin: CGFloat = 100
         if isOnGround {
+            // If we landed ahead of center (e.g. from a jump), advance the world so we land in front of takeoff
+            if player.position.x > centerX {
+                terrainManager.advanceWorld(by: player.position.x - centerX)
+            }
             player.position.x = centerX
             player.physicsBody?.velocity.dx = 0
         } else {
@@ -531,6 +574,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
            (b.categoryBitMask == PhysicsCategory.player && a.categoryBitMask == PhysicsCategory.ground) {
             physicsWorld.gravity = CGVector(dx: 0, dy: GameConstants.gravityNormal)
             isOnGround = true
+            // Advance world so we land in front of our takeoff (handled in clampPlayerToScreen next frame)
             player.alpha = 1.0
             if player.state == .jumping { player.state = .running }
         }
@@ -561,15 +605,49 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
 
     /// Penalty for hitting an obstacle. Runner is never blocked (obstacles have no collision); he always keeps moving right.
+    /// River crossings (waterCross) make you wet instead of a big penalty.
     private func handleObstacleHit(_ contact: SKPhysicsContact) {
         guard hitCooldown <= 0 else { return }
-        hitCooldown = 1.5
-        energy = max(0, energy - 20)
-        score = max(0, score - 100)
-        playSound("hit")
-        shakeScreen()
-        hud.showMessage("💥 OUCH! -100 pts", color: UIColor(red:1,green:0.3,blue:0.3,alpha:1))
-        flashPlayer()
+        let obstacleNode = contact.bodyA.categoryBitMask == PhysicsCategory.obstacle ? contact.bodyA.node : contact.bodyB.node
+        let isRiverCrossing = (obstacleNode?.name ?? "").contains("waterCross")
+
+        if isRiverCrossing {
+            hitCooldown = 0.8
+            energy = max(0, energy - 5)
+            score = max(0, score - 25)
+            player.removeAction(forKey: "wetDuration")
+            player.setWetForDuration(5.0)
+            playSound("water")
+            hud.showMessage("💦 Soaked! River crossing! -25 pts", color: UIColor(red:0.3,green:0.6,blue:1,alpha:1))
+            spawnWaterSplash()
+        } else {
+            hitCooldown = 1.5
+            energy = max(0, energy - 20)
+            score = max(0, score - 100)
+            playSound("hit")
+            shakeScreen()
+            hud.showMessage("💥 OUCH! -100 pts", color: UIColor(red:1,green:0.3,blue:0.3,alpha:1))
+            flashPlayer()
+        }
+    }
+
+    private func spawnWaterSplash() {
+        for _ in 0..<10 {
+            let drop = SKShapeNode(ellipseOf: CGSize(width: CGFloat.random(in: 4...10), height: CGFloat.random(in: 6...14)))
+            drop.fillColor = UIColor(red:0.4,green:0.7,blue:1,alpha:0.7)
+            drop.strokeColor = .clear
+            drop.position = CGPoint(x: player.position.x + CGFloat.random(in: -20...20), y: GameConstants.groundHeight + CGFloat.random(in: 10...50))
+            drop.zPosition = 19
+            addChild(drop)
+            drop.run(SKAction.sequence([
+                SKAction.group([
+                    SKAction.moveBy(x: CGFloat.random(in: -30...30), y: CGFloat.random(in: 20...60), duration: 0.5),
+                    SKAction.fadeOut(withDuration: 0.5),
+                    SKAction.scale(to: 0.2, duration: 0.5)
+                ]),
+                SKAction.removeFromParent()
+            ]))
+        }
     }
 
     private func handlePickup(_ node: SKNode?) {
@@ -671,7 +749,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         overlay.addChild(title)
 
         let sub = SKLabelNode(fontNamed: "AvenirNext-Medium")
-        sub.text = "Grab what you need!"
+        sub.text = "Pick one thing — then you're out!"
         sub.fontSize = 14
         sub.fontColor = UIColor.white.withAlphaComponent(0.85)
         sub.position = CGPoint(x: size.width/2, y: size.height/2 + panelH/2 - 58)
@@ -702,23 +780,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             btn.position = CGPoint(x: x, y: y)
             overlay.addChild(btn)
         }
-
-        let returnBtn = SKNode()
-        returnBtn.position = CGPoint(x: size.width/2, y: size.height/2 - panelH/2 + 44)
-        returnBtn.name = "tent_return"
-        returnBtn.zPosition = 1
-        let returnBg = SKShapeNode(rectOf: CGSize(width: 200, height: 44), cornerRadius: 10)
-        returnBg.fillColor = UIColor(red:0.2,green:0.7,blue:0.3,alpha:1)
-        returnBg.strokeColor = UIColor(red:0.3,green:0.9,blue:0.5,alpha:1)
-        returnBg.lineWidth = 2
-        returnBtn.addChild(returnBg)
-        let returnLbl = SKLabelNode(fontNamed: "AvenirNext-Heavy")
-        returnLbl.text = "🏃 Return to race"
-        returnLbl.fontSize = 16
-        returnLbl.fontColor = .white
-        returnLbl.verticalAlignmentMode = .center
-        returnBtn.addChild(returnLbl)
-        overlay.addChild(returnBtn)
 
         addChild(overlay)
         tentOverlay = overlay
@@ -835,7 +896,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         overlay.addChild(title)
 
         let sub = SKLabelNode(fontNamed: "AvenirNext-Medium")
-        sub.text = "Go to the bathroom or throw up!"
+        sub.text = "Pick one — then you're out!"
         sub.fontSize = 14
         sub.fontColor = UIColor.white.withAlphaComponent(0.9)
         sub.position = CGPoint(x: size.width/2, y: size.height/2 + panelH/2 - 68)
@@ -850,24 +911,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let pukeBtn = makePottyButton(name: "potty_puke", emoji: "🤮", label: "Throw up", size: 100)
         pukeBtn.position = CGPoint(x: size.width/2 + 75, y: size.height/2 + 15)
         overlay.addChild(pukeBtn)
-
-        // Exit button
-        let exitBtn = SKNode()
-        exitBtn.position = CGPoint(x: size.width/2, y: size.height/2 - panelH/2 + 50)
-        exitBtn.name = "potty_exit"
-        exitBtn.zPosition = 1
-        let exitBg = SKShapeNode(rectOf: CGSize(width: 220, height: 48), cornerRadius: 12)
-        exitBg.fillColor = UIColor(red: 0.2, green: 0.65, blue: 0.35, alpha: 1)
-        exitBg.strokeColor = UIColor(red: 0.35, green: 0.9, blue: 0.5, alpha: 1)
-        exitBg.lineWidth = 2
-        exitBtn.addChild(exitBg)
-        let exitLbl = SKLabelNode(fontNamed: "AvenirNext-Heavy")
-        exitLbl.text = "🚪 Exit potty"
-        exitLbl.fontSize = 18
-        exitLbl.fontColor = .white
-        exitLbl.verticalAlignmentMode = .center
-        exitBtn.addChild(exitLbl)
-        overlay.addChild(exitBtn)
 
         addChild(overlay)
         pottyOverlay = overlay
@@ -915,12 +958,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             energy = min(GameConstants.energyMax, energy + GameConstants.energyFromBathroom)
             score = max(0, score - 200)
             hud.showMessage("💩 Bathroom break! -200 pts, +\(Int(GameConstants.energyFromBathroom)) energy", color: UIColor(red: 0.4, green: 0.6, blue: 1, alpha: 1))
-            playSound("flush")
+            // Fart already played when they tapped 💩
         } else {
             energy = min(GameConstants.energyMax, energy + GameConstants.energyFromTrash)
             score = max(0, score - 150)
             hud.showMessage("🤮 Threw up! -150 pts, +\(Int(GameConstants.energyFromTrash)) energy", color: UIColor(red: 0.5, green: 0.8, blue: 0.4, alpha: 1))
-            playSound("bleh")
+            // Voice already played when they tapped 🤮
         }
 
         terrainManager.portaPottyNodes.removeAll { $0 == node }
@@ -1019,7 +1062,19 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
     private func finishRace() {
         isAlive = false
+        isCelebrating = true
         let finalScore = score + Int((1000.0 / elapsedTime) * 1000)
+
+        // Celebration: confetti, clapping sound, message
+        playSound("finish")
+        run(SKAction.sequence([
+            SKAction.wait(forDuration: 0.15),
+            SKAction.run { [weak self] in self?.playSound("finish") },
+            SKAction.wait(forDuration: 0.2),
+            SKAction.run { [weak self] in self?.playSound("finish") }
+        ]))
+        hud.showMessage("🏁 FINISH! 👏", color: UIColor(red: 1, green: 0.9, blue: 0.2, alpha: 1))
+        showFinishCelebration()
 
         // Save high score
         var highScores = UserDefaults.standard.array(forKey: "highscores_\(levelIndex)") as? [[String:Any]] ?? []
@@ -1042,6 +1097,52 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 self.view?.presentScene(scene, transition: SKTransition.fade(withDuration: 1.0))
             }
         ]))
+    }
+
+    private func showFinishCelebration() {
+        // Big confetti burst from center-top
+        let centerX = size.width / 2
+        let centerY = size.height * 0.55
+        for _ in 0..<50 {
+            let conf = SKShapeNode(rectOf: CGSize(width: CGFloat.random(in: 6...12), height: CGFloat.random(in: 6...12)))
+            conf.fillColor = UIColor(hue: CGFloat.random(in: 0...1), saturation: 0.9, brightness: 0.95, alpha: 1)
+            conf.strokeColor = .clear
+            conf.position = CGPoint(x: centerX + CGFloat.random(in: -40...40), y: centerY)
+            conf.zPosition = 150
+            conf.zRotation = CGFloat.random(in: 0...(.pi * 2))
+            addChild(conf)
+            let dx = CGFloat.random(in: -180...180)
+            let dy = CGFloat.random(in: 80...220)
+            conf.run(SKAction.sequence([
+                SKAction.group([
+                    SKAction.moveBy(x: dx, y: dy, duration: 1.4),
+                    SKAction.rotate(byAngle: .pi * CGFloat.random(in: 2...6), duration: 1.4),
+                    SKAction.sequence([
+                        SKAction.wait(forDuration: 0.6),
+                        SKAction.fadeOut(withDuration: 0.8)
+                    ])
+                ]),
+                SKAction.removeFromParent()
+            ]))
+        }
+        // Clapping hands emoji burst
+        let clapEmojis = ["👏", "🎉", "🏁", "🌟"]
+        for i in 0..<12 {
+            let lbl = SKLabelNode(text: clapEmojis[i % clapEmojis.count])
+            lbl.fontSize = CGFloat.random(in: 24...36)
+            lbl.position = CGPoint(x: centerX, y: centerY)
+            lbl.zPosition = 151
+            addChild(lbl)
+            let angle = CGFloat(i) / 12.0 * .pi * 2 + CGFloat.random(in: -0.2...0.2)
+            let dist = CGFloat.random(in: 60...140)
+            lbl.run(SKAction.sequence([
+                SKAction.group([
+                    SKAction.moveBy(x: cos(angle) * dist, y: sin(angle) * dist, duration: 1.0),
+                    SKAction.fadeOut(withDuration: 1.0)
+                ]),
+                SKAction.removeFromParent()
+            ]))
+        }
     }
 
     // MARK: - Effects
@@ -1124,6 +1225,76 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
 
     // MARK: - Sounds (System sounds mapped to game events)
+    /// Play fart when the player uses the poop emoji in the bathroom.
+    /// Uses "fart.wav", "fart.m4a", or "fart.mp3" from the app bundle if present; otherwise plays a procedural fart.
+    private func playFartSound() {
+        let extensions = ["wav", "m4a", "mp3"]
+        for ext in extensions {
+            if let url = Bundle.main.url(forResource: "fart", withExtension: ext) {
+                do {
+                    audioPlayers["fart"]?.stop()
+                    let player = try AVAudioPlayer(contentsOf: url)
+                    audioPlayers["fart"] = player
+                    player.play()
+                    return
+                } catch {}
+                break
+            }
+        }
+        playFartSoundProcedural()
+    }
+
+    /// Fallback procedural fart if no sound file is bundled.
+    private func playFartSoundProcedural() {
+        let sampleRate: Double = 44100
+        let duration: Double = 0.22
+        let frameCount = AVAudioFrameCount(sampleRate * duration)
+        guard let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1),
+              let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else { return }
+        buffer.frameLength = frameCount
+        guard let channelData = buffer.floatChannelData else { return }
+        let samples = channelData[0]
+        var r: Float = 0.5
+        for i in 0..<Int(frameCount) {
+            r = r * 0.97 + Float.random(in: -0.15...0.15)
+            let t = Double(i) / sampleRate
+            let envelope = exp(-t * 12) * (1 - exp(-t * 80))
+            samples[i] = r * Float(envelope) * 0.4
+        }
+        let engine = AVAudioEngine()
+        let player = AVAudioPlayerNode()
+        engine.attach(player)
+        let mainMixer = engine.mainMixerNode
+        engine.connect(player, to: mainMixer, format: format)
+        do {
+            try engine.start()
+            fartEngineHolder = (engine, player)
+            player.scheduleBuffer(buffer, at: nil, options: .interrupts) { [weak self] in
+                DispatchQueue.main.async { self?.fartEngineHolder = nil }
+            }
+            player.play()
+        } catch {}
+    }
+
+    /// Play "Wow, I feel better" when the player uses the throw-up emoji in the bathroom.
+    /// Uses "feel_better.aiff", .wav, .m4a, or .mp3 from the app bundle if present; otherwise plays system "bleh" sound.
+    private func playFeelBetterSound() {
+        let extensions = ["aiff", "wav", "m4a", "mp3"]
+        for ext in extensions {
+            if let url = Bundle.main.url(forResource: "feel_better", withExtension: ext) {
+                do {
+                    audioPlayers["feel_better"]?.stop()
+                    let player = try AVAudioPlayer(contentsOf: url)
+                    audioPlayers["feel_better"] = player
+                    player.play()
+                    return
+                } catch {}
+                break
+            }
+        }
+        playSound("bleh")
+    }
+
     private func playSound(_ name: String) {
         // Map game events to system sound IDs for built-in audio feedback
         var soundID: SystemSoundID = 0
@@ -1137,6 +1308,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         case "flush":     soundID = 1020
         case "bleh":      soundID = 1304
         case "aidStation":soundID = 1025  // Cha-ching style
+        case "finish":    soundID = 1025  // Success / celebration (clapping feel)
         default:          soundID = 1054
         }
         if soundID == 4095 {

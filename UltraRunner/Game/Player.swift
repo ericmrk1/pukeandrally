@@ -1,7 +1,7 @@
 import SpriteKit
 
 enum PlayerState {
-    case running, sprinting, walking, hiking, jumping, celebration
+    case running, sprinting, walking, hiking, jumping, celebration, dead
 }
 
 class Player: SKNode {
@@ -14,6 +14,8 @@ class Player: SKNode {
     var rightLeg: SKShapeNode!
     var shadow: SKShapeNode!
     var trail: SKEmitterNode?
+    /// Shown when state == .dead (skull and crossbones); body/head/limbs are hidden.
+    private var skullNode: SKNode?
 
     var state: PlayerState = .running {
         didSet { if oldValue != state { updateAnimation() } }
@@ -23,6 +25,13 @@ class Player: SKNode {
     private var armAngle: CGFloat = 0
     private var animTimer: Timer?
     private var bouncePhase: CGFloat = 0
+
+    /// River crossing / water obstacle makes the runner look soaked for a while.
+    private(set) var isWet = false
+    private let dryBodyColor = UIColor(red:0.9,green:0.3,blue:0.2,alpha:1)
+    private let drySkinColor = UIColor(red:0.85,green:0.65,blue:0.5,alpha:1)
+    private let dryHeadColor = UIColor(red:0.9,green:0.72,blue:0.55,alpha:1)
+    private let dryLegColor = UIColor(red:0.2,green:0.4,blue:0.8,alpha:1)
 
     override init() {
         super.init()
@@ -124,8 +133,11 @@ class Player: SKNode {
     }
 
     private func animateLegs(phase: CGFloat) {
+        guard state != .dead else { return }
         let angle = sin(phase * .pi * 2 * 3) * 0.5
         switch state {
+        case .dead:
+            break
         case .running:
             leftLeg.zRotation = angle
             rightLeg.zRotation = -angle
@@ -165,6 +177,9 @@ class Player: SKNode {
 
     private func updateAnimation() {
         switch state {
+        case .dead:
+            applyDeadAppearance()
+            return
         case .sprinting:
             let pulse = SKAction.sequence([
                 SKAction.scale(to: 1.05, duration: 0.1),
@@ -177,6 +192,37 @@ class Player: SKNode {
         }
     }
 
+    /// Replace runner with skull and crossbones and lay the character down (called when state == .dead).
+    private func applyDeadAppearance() {
+        removeAction(forKey: "runAnim")
+        body.isHidden = true
+        head.isHidden = true
+        leftArm.isHidden = true
+        rightArm.isHidden = true
+        leftLeg.isHidden = true
+        rightLeg.isHidden = true
+        shadow.isHidden = false
+
+        if skullNode == nil {
+            let container = SKNode()
+            // Skull and crossbones emoji
+            let skull = SKLabelNode(text: "☠")
+            skull.fontSize = 44
+            skull.verticalAlignmentMode = .center
+            skull.horizontalAlignmentMode = .center
+            skull.position = .zero
+            container.addChild(skull)
+            container.zPosition = 10
+            addChild(container)
+            skullNode = container
+        }
+        skullNode?.isHidden = false
+
+        // Lie down: rotate so character is on their back (skull on the ground)
+        zRotation = -CGFloat.pi / 2
+        physicsBody?.isDynamic = false
+    }
+
     func jump() {
         guard let pb = physicsBody else { return }
         pb.velocity = CGVector(dx: 0, dy: 0)
@@ -186,5 +232,39 @@ class Player: SKNode {
 
     func setColor(_ color: UIColor) {
         body.fillColor = color
+    }
+
+    /// Make the runner look soaked (darker, blue tint). Call setWet(false) or setWetForDuration to dry.
+    func setWet(_ wet: Bool) {
+        guard isWet != wet else { return }
+        isWet = wet
+        if wet {
+            body.fillColor = UIColor(red:0.35,green:0.25,blue:0.5,alpha:0.95)
+            body.strokeColor = UIColor(red:0.2,green:0.15,blue:0.35,alpha:1)
+            head.fillColor = UIColor(red:0.5,green:0.4,blue:0.55,alpha:0.95)
+            head.strokeColor = UIColor(red:0.35,green:0.28,blue:0.4,alpha:1)
+            leftArm.fillColor = UIColor(red:0.4,green:0.35,blue:0.5,alpha:0.95)
+            rightArm.fillColor = UIColor(red:0.4,green:0.35,blue:0.5,alpha:0.95)
+            leftLeg.fillColor = UIColor(red:0.15,green:0.25,blue:0.55,alpha:0.95)
+            rightLeg.fillColor = UIColor(red:0.15,green:0.25,blue:0.55,alpha:0.95)
+        } else {
+            body.fillColor = dryBodyColor
+            body.strokeColor = UIColor(red:0.7,green:0.1,blue:0.05,alpha:1)
+            head.fillColor = dryHeadColor
+            head.strokeColor = UIColor(red:0.7,green:0.5,blue:0.35,alpha:1)
+            leftArm.fillColor = drySkinColor
+            rightArm.fillColor = drySkinColor
+            leftLeg.fillColor = dryLegColor
+            rightLeg.fillColor = dryLegColor
+        }
+    }
+
+    /// Soak the runner for a duration, then dry off.
+    func setWetForDuration(_ seconds: TimeInterval) {
+        setWet(true)
+        run(SKAction.sequence([
+            SKAction.wait(forDuration: seconds),
+            SKAction.run { [weak self] in self?.setWet(false) }
+        ]), withKey: "wetDuration")
     }
 }

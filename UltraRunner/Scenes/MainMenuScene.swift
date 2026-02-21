@@ -1,4 +1,5 @@
 import SpriteKit
+import UIKit
 
 class MainMenuScene: SKScene {
 
@@ -23,23 +24,23 @@ class MainMenuScene: SKScene {
         titleBg.fillColor = UIColor(red:0.1,green:0.15,blue:0.3,alpha:0.8)
         titleBg.strokeColor = UIColor(red:0.3,green:0.6,blue:1,alpha:0.5)
         titleBg.lineWidth = 2
-        titleBg.position = CGPoint(x: size.width/2, y: size.height * 0.82)
+        titleBg.position = CGPoint(x: size.width/2, y: size.height * 0.78)
         titleBg.zPosition = 10
         addChild(titleBg)
 
         let title = SKLabelNode(fontNamed: "AvenirNext-Heavy")
-        title.text = "🏃 ULTRA RUNNER"
+        title.text = "PUKE AND RALLY"
         title.fontSize = 46
         title.fontColor = UIColor(red:1,green:0.85,blue:0.2,alpha:1)
-        title.position = CGPoint(x: size.width/2, y: size.height * 0.8)
+        title.position = CGPoint(x: size.width/2, y: size.height * 0.76)
         title.zPosition = 11
         addChild(title)
 
         let subtitle = SKLabelNode(fontNamed: "AvenirNext-Bold")
-        subtitle.text = "Trail & Ultra Running Adventure"
+        subtitle.text = "Puke. Rally. Repeat."
         subtitle.fontSize = 18
         subtitle.fontColor = UIColor(red:0.7,green:0.85,blue:1,alpha:0.9)
-        subtitle.position = CGPoint(x: size.width/2, y: size.height * 0.73)
+        subtitle.position = CGPoint(x: size.width/2, y: size.height * 0.69)
         subtitle.zPosition = 11
         addChild(subtitle)
 
@@ -189,24 +190,28 @@ class MainMenuScene: SKScene {
 
     private func showHelp() {
         let overlay = makeOverlay(title: "❓ HOW TO PLAY")
-        let lines = [
-            "👆 TAP — Jump over obstacles",
-            "👇 HOLD — Sprint (drains energy fast!)",
-            "⚡ Energy bar — depletes when running",
-            "🚶 When empty — you walk to recover",
-            "💧⚡🐻 Collect items to restore energy",
-            "🏕 Reach all Aid Stations to finish!",
-            "🚻 Bathroom — lose time, gain energy",
-            "🗑 Trash can — barf, lose time, gain energy",
-            "⭐ Points: speed + collectibles + aid stations",
+        // (line, extraSpaceAfter): extraSpaceAfter adds gap before next line for section breaks
+        let lines: [(String, CGFloat)] = [
+            ("👆 TAP — Jump over obstacles", 0),
+            ("👇 HOLD — Sprint (drains energy fast!)", 8),
+            ("⚡ Energy bar — depletes when running", 0),
+            ("🚶 When empty — you walk to recover", 12),
+            ("💧⚡🐻 Collect items to restore energy", 0),
+            ("🏕 Reach all Aid Stations to finish!", 12),
+            ("🚻 Bathroom — lose time, gain energy", 0),
+            ("🗑 Trash can — barf, lose time, gain energy", 0),
+            ("⭐ Points: speed + collectibles + aid stations", 0),
         ]
-        for (i, line) in lines.enumerated() {
+        let lineSpacing: CGFloat = 34
+        var y: CGFloat = 95
+        for (line, extra) in lines {
             let lbl = SKLabelNode(fontNamed: "AvenirNext-Regular")
             lbl.text = line
-            lbl.fontSize = 13
+            lbl.fontSize = 14
             lbl.fontColor = .white
-            lbl.position = CGPoint(x: 0, y: 105 - CGFloat(i) * 26)
+            lbl.position = CGPoint(x: 0, y: y)
             overlay.addChild(lbl)
+            y -= lineSpacing + extra
         }
     }
 

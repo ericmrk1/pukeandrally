@@ -1,4 +1,5 @@
 import SpriteKit
+import UIKit
 
 class GameOverScene: SKScene {
 
@@ -21,6 +22,15 @@ class GameOverScene: SKScene {
         bg.strokeColor = .clear
         bg.position = CGPoint(x: size.width/2, y: size.height/2)
         addChild(bg)
+
+        // App logo (runner + cactus)
+        if let img = UIImage(named: "AppLogo") {
+            let logoSize: CGFloat = 52
+            let logo = SKSpriteNode(texture: SKTexture(image: img), size: CGSize(width: logoSize, height: logoSize))
+            logo.position = CGPoint(x: size.width - 45, y: size.height - 42)
+            logo.zPosition = 10
+            addChild(logo)
+        }
 
         // Trophy
         let trophy = SKLabelNode(text: medal(for: finalScore))
